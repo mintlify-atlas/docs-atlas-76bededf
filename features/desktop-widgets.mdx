@@ -26,9 +26,9 @@ Each widget type ships with one or more *variants*. The variant switcher appears
 
 <CardGroup cols={2}>
   <Card title="Clock" icon="clock">
-    **Variants:** `ClockFaceAnalog`, `ClockFaceDigital`, `ClockFaceMinimal`
+    **Variants:** `ClockFaceAnalog`, `ClockFaceDigital`
 
-    Renders the current local time. The analog variant draws hands on a round dial; the digital and minimal variants display numeric readouts.
+    Renders the current local time. The analog variant draws hands on a round dial; the digital variant displays a numeric readout.
   </Card>
   <Card title="Music" icon="music">
     **Variants:** `MusicFace`, `MusicFaceRound`
@@ -44,16 +44,6 @@ Each widget type ships with one or more *variants*. The variant switcher appears
     **Variants:** `WeatherFaceCompact`, `WeatherFaceFull`, `WeatherFaceRound`
 
     Shows current weather conditions from the configured location. The compact variant is a minimal icon-and-temperature pill; the full variant includes a forecast.
-  </Card>
-  <Card title="User" icon="user">
-    **Variant:** `UserFace`
-
-    Displays the system user's avatar image and username.
-  </Card>
-  <Card title="Visualizer" icon="waveform">
-    **Variants:** `VisualizerFace`, `VisualizerFaceContinuous`
-
-    A Cava-powered bar visualizer. The continuous variant renders a smooth waveform rather than discrete bars.
   </Card>
   <Card title="System Usage" icon="microchip">
     **Variant:** `UsageFace`
@@ -108,7 +98,3 @@ Widget layouts are stored separately for each monitor. If you have multiple disp
 # The QS_WIDGET_MONITOR environment variable targets a specific screen
 QS_WIDGET_MONITOR=DP-1 serpantinum launch widgetredactor
 ```
-
-<Note>
-  The `ClockFaceMinimal` face is not listed in the `qmldir` faces index because it ships as part of the clock family — select it via the variant switcher after placing a clock widget.
-</Note>

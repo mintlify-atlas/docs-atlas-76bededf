@@ -1,5 +1,5 @@
 ---
-title: Display & Monitor Configuration in Serpantinum
+title: Display & Monitor Setup — Scale & Blue-Light Filter
 sidebarTitle: Display
 description: Configure per-monitor scale, blue-light filter, color temperature, and enable/disable outputs through Serpantinum's display section.
 ---
@@ -38,7 +38,7 @@ To find the correct output names for your connected displays, run:
 serpantinum monitors_detect
 ```
 
-This queries the active compositor — using `hyprctl monitors all -j`, `niri msg -j outputs`, or `swaymsg -t get_outputs` depending on which compositor is running — and prints a list of detected output names alongside their current resolution and refresh rate.
+This queries the active compositor — using `hyprctl monitors`, `niri msg --json outputs`, or `swaymsg -t get_outputs` depending on which compositor is running — and prints a list of detected output names alongside their current resolution and refresh rate.
 
 <Note>
   Output names vary by compositor and hardware. Common patterns are `eDP-1` (built-in panel), `HDMI-A-1`, `DP-1`, `DP-2`, and `HDMI-1`. Always verify the exact name with `serpantinum monitors_detect` before editing the config.

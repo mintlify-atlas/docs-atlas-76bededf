@@ -1,7 +1,7 @@
 ---
-title: "serpantinum CLI — Shell Control Commands"
+title: "serpantinum CLI Reference — Serpantinum Shell Commands"
 sidebarTitle: "serpantinum"
-description: "Full reference for the serpantinum binary: launch QML targets, send IPC messages, control volume and brightness, capture screenshots, and manage the running shell."
+description: "Complete reference for the serpantinum binary: launch QML targets, send IPC messages, control volume, brightness, screenshots, and weather."
 ---
 
 The `serpantinum` binary is the primary user-facing interface for Serpantinum. It lets you launch the shell, send messages to running panels, query system state, and invoke helper scripts for volume, brightness, weather, screenshots, and more. Every invocation either acts on the running shell directly (through IPC) or delegates to a purpose-built script inside the `src/scripts/` directory. If the daemon is not already running when a command needs it, `serpantinum` starts `serpantinumd` automatically before executing.

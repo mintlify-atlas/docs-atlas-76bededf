@@ -1,5 +1,5 @@
 ---
-title: Hyprland Integration Guide for Serpantinum
+title: Hyprland Compositor Integration Guide for Serpantinum
 sidebarTitle: Hyprland
 description: Set up Serpantinum with Hyprland using the provided Lua config — covering autostart, keybindings, environment variables, and monitor configuration.
 ---
@@ -148,7 +148,7 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
 hl.bind(mainMod .. " + Q",       hl.dsp.window.close())
-hl.bind(mainMod .. " + SHIFT+F", hl.dsp.window.float({ action = "toggle" }))
+hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.float({ action = "toggle" }))
 
 hl.bind(mainMod .. " + Left",  hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + Right", hl.dsp.focus({ direction = "right" }))

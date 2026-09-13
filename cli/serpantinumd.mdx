@@ -1,7 +1,7 @@
 ---
-title: "serpantinumd — Shell Daemon Management"
+title: "serpantinumd CLI Reference — Daemon Lifecycle Control"
 sidebarTitle: "serpantinumd"
-description: "Reference for the serpantinumd daemon binary: start, stop, and query the Quickshell shell process, with PID tracking, lock-file safety, and systemd integration."
+description: "Reference for serpantinumd: start, stop, and query the Quickshell daemon, with PID file tracking, flock safety, and systemd user service integration."
 ---
 
 `serpantinumd` is the process supervisor that keeps Quickshell running as a persistent background daemon. When started, it acquires an exclusive lock at `/tmp/serpantinumd.lock`, writes its PID to `/tmp/serpantinumd.pid`, then launches the Quickshell shell alongside the wellbeing daemon (`launch_daemon.sh`). It monitors the Quickshell process and coordinates a clean shutdown of all child processes when asked to stop. The `serpantinum` client binary calls `serpantinumd` automatically whenever a command requires the shell to be running, so in normal day-to-day use you only interact with `serpantinumd` directly when you want explicit control over the lifecycle.

@@ -134,10 +134,12 @@ When `systemd.enable = true`, the module creates a `systemd --user` service name
 |---|---|---|
 | `wallpaperDir` | `str` | Directory Serpantinum reads wallpapers from |
 | `general.language` | `str` | UI language code |
+| `general.avatarPath` | `str` | Path to the avatar image shown in the shell |
 | `general.weatherUnit` | `"metric"` \| `"imperial"` | Units for weather display |
 | `general.weatherInterval` | `int` | Minutes between weather refreshes |
 | `general.muteSfx` | `bool` | Mute UI sound effects |
 | `general.sfxVolume` | `0–100` | UI sound effect volume |
+| `general.quickactions` | `bool` | Show the quick actions panel |
 | `bar.position` | `"top"` \| `"bottom"` \| `"left"` \| `"right"` | Screen edge the bar docks to |
 | `bar.style` | `"solid"` \| `"fill"` \| `"modular"` | Bar visual style |
 | `bar.width` | `int` | Bar thickness in pixels |
@@ -153,6 +155,7 @@ When `systemd.enable = true`, the module creates a `systemd --user` service name
 | `notifications.dnd` | `bool` | Do Not Disturb mode |
 | `notifications.position` | `str` | Corner where notifications appear |
 | `notifications.sound` | `bool` | Play sound on notifications |
+| `notifications.soundFile` | `str` | Path to the notification sound file |
 | `idle.enabled` | `bool` | Master switch for idle management |
 | `idle.actions.dim.timeout` | `int` | Seconds before dimming |
 | `idle.actions.dpms.timeout` | `int` | Seconds before display off |
