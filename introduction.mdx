@@ -1,0 +1,94 @@
+---
+title: "Serpantinum: A Wayland Shell for Modern Compositors"
+sidebarTitle: Introduction
+description: "Serpantinum is a Quickshell/QML-based Wayland desktop shell with a full-featured bar, widgets, notifications, and themes. Supports Hyprland, Niri, and Sway."
+---
+
+Serpantinum is a modern Wayland desktop shell built with [Quickshell](https://quickshell.outfoxxed.me/) and QML. It sits on top of your Wayland compositor and provides a polished, cohesive desktop experience — including a configurable status bar, desktop widgets, a notification daemon, an application launcher, a system panel, idle management, and a live theming engine — all driven by a single JSON configuration file. The current release is **v2.1.5**.
+
+## Supported Compositors
+
+Serpantinum ships with ready-made integration configs for three compositors. You can run it on any of them without writing compositor config from scratch.
+
+<CardGroup cols={3}>
+  <Card title="Hyprland" icon="bolt" href="/compositors/hyprland">
+    Dynamic tiling compositor with the richest Serpantinum integration, including Lua-based autostart hooks.
+  </Card>
+  <Card title="Niri" icon="layout-grid" href="/compositors/niri">
+    Scrollable-tiling compositor with first-class Wayland support and a clean Serpantinum config.
+  </Card>
+  <Card title="Sway" icon="tree" href="/compositors/sway">
+    i3-compatible tiling compositor. Serpantinum provides a drop-in `config` and autostart entries.
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Configurable Bar" icon="rectangle-wide" href="/features/bar-widgets">
+    Position the bar on any screen edge (`top`, `bottom`, `left`, `right`), choose between `solid`, `fill`, and `modular` styles, and arrange modules freely across left, center, and right sections.
+  </Card>
+  <Card title="Desktop Widgets" icon="squares-four" href="/features/desktop-widgets">
+    Place interactive widgets — including a battery indicator, system resource usage, and more — anywhere on your desktop using the built-in widget redactor.
+  </Card>
+  <Card title="Live Theming" icon="palette" href="/configuration/theme">
+    Choose a bundled theme preset or let Matugen auto-generate a colour palette from your current wallpaper. Adjust font family, border radius, and per-component colour overrides.
+  </Card>
+  <Card title="Notification System" icon="bell" href="/features/notifications">
+    A built-in notification daemon with Do Not Disturb mode, configurable screen position, sound alerts, and a test-notification button in the settings guide.
+  </Card>
+  <Card title="System Panel" icon="sliders" href="/features/system-panel">
+    A slide-out panel with quick-action toggles, network (Wi-Fi) controls, Bluetooth management, volume, brightness, and power-profile switching.
+  </Card>
+  <Card title="Idle Management" icon="moon" href="/configuration/idle">
+    Four built-in idle actions — dim, DPMS off, lock, and suspend — each with independent timeouts, inhibitor awareness, and MPRIS media playback suppression.
+  </Card>
+  <Card title="App Launcher" icon="search" href="/features/bar-widgets">
+    A fast application launcher with keyboard-driven navigation, accessible via a configurable keybind or the bar.
+  </Card>
+  <Card title="Media Player" icon="music" href="/features/media">
+    A compact MPRIS media controller embedded in the bar or system panel, showing album art, track metadata, and playback controls.
+  </Card>
+</CardGroup>
+
+## Architecture
+
+Serpantinum uses a two-process model:
+
+- **`serpantinumd`** — the supervisor daemon. It acquires a lock file at `/tmp/serpantinumd.lock`, writes its PID to `/tmp/serpantinumd.pid`, launches the wellbeing/idle helper, and starts the Quickshell process. It handles `start`, `stop`, and `status` subcommands and cleans up all child processes on exit.
+- **`quickshell`** — the QML runtime that renders the bar, widgets, notifications, and every visible element. It is managed entirely by `serpantinumd` and should not be launched directly during normal use.
+
+The **`serpantinum`** CLI communicates with the running shell over a socket, forwarding workspace switches, panel toggles, IPC calls, and script helpers (lock, screenshot, brightness, volume, etc.) without restarting the daemon.
+
+```
+┌─────────────────────────────────────────┐
+│  serpantinumd  (supervisor, PID file)   │
+│    ├─ wellbeing/launch_daemon.sh        │
+│    └─ quickshell -p Shell.qml           │
+└─────────────────────────────────────────┘
+         ▲
+         │  IPC socket
+         │
+   serpantinum msg / ipc / …
+```
+
+<Note>
+  Serpantinum currently supports **Arch Linux and its derivatives** via the automated installer. A NixOS flake is also provided with a NixOS module and a Home Manager module. Other distributions are not supported by the automated installer.
+</Note>
+
+## Quick Start
+
+<CardGroup cols={2}>
+  <Card title="Install on Arch Linux" icon="linux" href="/installation">
+    One-command automated installer that detects your compositor and installs all required packages via `pacman` / AUR.
+  </Card>
+  <Card title="Install on NixOS" icon="snowflake" href="/nix-installation">
+    Add the flake input, enable the NixOS module for system prerequisites, and configure your settings through the Home Manager module.
+  </Card>
+  <Card title="Configuration Overview" icon="gear" href="/configuration/overview">
+    Learn how Serpantinum's `settings.json` is structured and how every section — bar, theme, notifications, idle, display — fits together.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/serpantinum">
+    Full reference for the `serpantinum` and `serpantinumd` command-line interfaces, including all subcommands and flags.
+  </Card>
+</CardGroup>

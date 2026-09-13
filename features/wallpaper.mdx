@@ -1,0 +1,107 @@
+---
+title: "Wallpaper Picker & Matugen Color Generation"
+sidebarTitle: "Wallpaper"
+description: "Browse local and DuckDuckGo wallpapers, apply them with animated transitions, and let Matugen regenerate your full color palette from the active wallpaper."
+---
+
+Serpantinum ships a built-in wallpaper picker that can browse your local image and video collection, search DuckDuckGo for online wallpapers, and apply them via animated transitions. When the `theme.matugen` setting is enabled, switching the wallpaper also triggers an automatic Matugen run that regenerates the entire shell color palette from the new image — updating every bar module, popup, and widget in real time without restarting.
+
+## Opening the Wallpaper Picker
+
+```bash
+serpantinum msg open wallpaper
+```
+
+When this command runs, Serpantinum also kicks off a background thumbnail pre-generation pass over your `wallpaperDir`. Thumbnails are cached so subsequent opens are instant.
+
+## Wallpaper Directory
+
+The picker scans the directory configured in `wallpaperDir` (falling back to `~/Pictures/Wallpapers` if the setting is absent). Set it in `settings.json`:
+
+```json settings.json
+{
+  "wallpaperDir": "/home/user/Pictures/Wallpapers"
+}
+```
+
+Or via the Home Manager module:
+
+```nix home.nix
+programs.serpantinum.settings.wallpaperDir = "/home/user/Pictures/Wallpapers";
+```
+
+## Supported File Formats
+
+<CardGroup cols={2}>
+  <Card title="Images" icon="image">
+    `jpg`, `jpeg`, `png`, `gif`
+
+    Displayed as-is. Static images are applied directly.
+  </Card>
+  <Card title="Video Wallpapers" icon="film">
+    `mp4`, `mkv`, `mov`, `webm`
+
+    A still thumbnail is extracted from the 5-second mark using ffmpeg and shown in the picker grid. The full video is applied as a live wallpaper.
+  </Card>
+</CardGroup>
+
+<Warning>
+  **webp files are automatically converted to jpg.** When the thumbnail pre-generation pass encounters a `.webp` file, it converts it using ImageMagick and removes the original. Keep backups of any webp wallpapers you want to preserve in their original format.
+</Warning>
+
+## DuckDuckGo Wallpaper Search
+
+The picker includes a built-in online search mode powered by the `ddg_search.sh` script. Switch to the **Search** filter tab inside the wallpaper picker UI to activate it. As you type a query, the picker fetches image thumbnails from DuckDuckGo in the background, converting any `webp` results to `jpg` on the fly. Results stream in as they are downloaded — you do not have to wait for the full search to complete before clicking one.
+
+```bash
+# The underlying script is at:
+# src/scripts/wallpaper/ddg_search.sh
+# It is called automatically by the picker UI — no manual invocation needed.
+```
+
+<Info>
+  Downloaded search thumbnails are stored in the Serpantinum cache directory and are not added permanently to your `wallpaperDir`.
+</Info>
+
+## Matugen Color Generation
+
+When `theme.matugen` is `true` in your settings, every wallpaper change triggers a Matugen palette regeneration:
+
+<Steps>
+  <Step title="Apply a wallpaper">
+    Select any image or video from the picker. Serpantinum applies it as the desktop background via swww with an animated transition.
+  </Step>
+  <Step title="Matugen generates colors">
+    The `matugen_reload.sh` script runs Matugen against the new wallpaper, writing a fresh color JSON file to `~/.local/state/serpantinum/qs_colors.json` (as configured in `src/assets/matugen/config.toml`).
+  </Step>
+  <Step title="Shell reloads colors">
+    Quickshell receives an IPC call (`theme reloadColors`) and immediately applies the new palette to all running components — bar, popups, widgets, and the notification center.
+  </Step>
+</Steps>
+
+Matugen also regenerates color files for other applications at the same time: Kitty terminal colors are written to `~/.config/kitty/colors.conf`, Cava bar colors to `~/.config/cava/config`, and Fastfetch theme to `~/.config/fastfetch/config.jsonc`.
+
+Enable or disable Matugen theming:
+
+```json settings.json
+{
+  "theme": {
+    "matugen": true
+  }
+}
+```
+
+<Note>
+  Matugen must be installed for color generation to work. It is listed as a required dependency in `install/modules/deps.sh`. On NixOS it can be pulled in through the provided NixOS module.
+</Note>
+
+## Thumbnail Pre-Generation
+
+Opening the wallpaper picker via `serpantinum msg open wallpaper` automatically starts a background indexer that:
+
+1. Scans `wallpaperDir` for all supported files.
+2. Generates missing thumbnails (video files use ffmpeg; images are copied/resized with ImageMagick).
+3. Converts any `.webp` images it finds to `.jpg`.
+4. Records completed entries in a manifest file so subsequent runs skip already-processed files.
+
+A lock file prevents concurrent indexer runs. If the wallpaper directory changes (for example, you point `wallpaperDir` to a different path), the thumbnail cache is invalidated and rebuilt from scratch.

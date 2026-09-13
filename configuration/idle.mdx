@@ -1,0 +1,155 @@
+---
+title: Idle Management — Dim, DPMS, Lock & Suspend
+sidebarTitle: Idle
+description: Configure Serpantinum's idle pipeline — timeouts, inhibitor rules, warning commands, and custom actions for dim, DPMS, lock, and suspend.
+---
+
+Serpantinum includes a built-in idle management system that watches for inactivity and fires a sequenced pipeline of actions: screen dim, display power-off (DPMS), session lock, and system suspend. Each action is individually configurable, can be disabled independently, and supports custom commands that replace the built-in behaviour. Additional arbitrary actions can be appended through the `customActions` array.
+
+## Root-level settings
+
+<ParamField path="idle.enabled" type="boolean" default="true">
+  Master switch for the entire idle system. When `false`, no idle actions fire regardless of individual action settings.
+</ParamField>
+
+<ParamField path="idle.manualInhibit" type="boolean" default="false">
+  When `true`, a "Keep Awake" toggle is exposed in the system panel, allowing the user to manually hold an idle inhibitor without relying on an application doing so automatically.
+</ParamField>
+
+## Per-action settings
+
+Each of the four built-in actions (`dim`, `dpms`, `lock`, `suspend`) shares the same set of fields under `idle.actions.<id>`:
+
+<ParamField path="idle.actions.<id>.enabled" type="boolean" default="true">
+  Whether this individual action is active. Disabling one action does not affect the others.
+</ParamField>
+
+<ParamField path="idle.actions.<id>.timeout" type="integer">
+  Seconds of inactivity before this action fires. The pipeline enforces the ordering constraint: **dim < lock < dpms < suspend**. An action whose timeout is not strictly less than the next enabled action's timeout is excluded at runtime.
+
+  | Action | Default |
+  |---|---|
+  | `dim` | 150 s |
+  | `lock` | 300 s |
+  | `dpms` | 450 s |
+  | `suspend` | 600 s |
+</ParamField>
+
+<ParamField path="idle.actions.<id>.respectInhibitors" type="boolean" default="true">
+  When `true`, this action is skipped while any Wayland idle inhibitor is active (e.g., a fullscreen video player).
+</ParamField>
+
+<ParamField path="idle.actions.<id>.mprisInhibit" type="boolean" default="false">
+  When `true`, this action is also suppressed while any MPRIS media source is actively playing audio or video, regardless of whether a formal Wayland inhibitor is held.
+</ParamField>
+
+<ParamField path="idle.actions.<id>.command" type="string" default="">
+  Custom shell command to execute instead of the built-in action. Leave empty to use the default behaviour for that action. The command runs with `bash -c`.
+</ParamField>
+
+<ParamField path="idle.actions.<id>.resumeCommand" type="string" default="">
+  Shell command executed when user activity resumes after this action fired. Most useful for `dpms` — for example, re-enabling the display via a compositor command. Leave empty if no resume action is needed.
+</ParamField>
+
+<ParamField path="idle.actions.<id>.warningTimeout" type="integer" default="0">
+  Seconds before the action fires at which a warning command is executed. Set to `0` to disable the warning. Useful for showing a lock countdown or playing a sound before the screen locks.
+</ParamField>
+
+## Custom actions
+
+<ParamField path="idle.customActions" type="array" default="[]">
+  An array of additional idle action objects appended to the pipeline after the four built-ins. Each object accepts the same fields as the built-in actions plus a `name` string for display purposes.
+
+  ```json
+  "customActions": [
+    {
+      "id": "notify_idle",
+      "name": "Idle Notification",
+      "timeout": 120,
+      "enabled": true,
+      "respectInhibitors": true,
+      "mprisInhibit": false,
+      "warningTimeout": 0,
+      "command": "notify-send 'Going idle soon'",
+      "resumeCommand": "",
+      "isCustom": true
+    }
+  ]
+  ```
+</ParamField>
+
+<Warning>
+  Custom actions do not participate in the ordering constraint enforced on the four built-ins. They fire independently at their configured timeout regardless of where that timeout falls relative to dim/lock/dpms/suspend.
+</Warning>
+
+## Full example
+
+The following reproduces the default idle section from `settings.json`:
+
+```json
+"idle": {
+  "enabled": true,
+  "actions": {
+    "dim": {
+      "id": "dim",
+      "timeout": 150,
+      "enabled": true,
+      "respectInhibitors": true,
+      "mprisInhibit": false,
+      "command": "",
+      "resumeCommand": "",
+      "isCustom": false
+    },
+    "lock": {
+      "id": "lock",
+      "timeout": 300,
+      "enabled": true,
+      "respectInhibitors": true,
+      "mprisInhibit": false,
+      "command": "",
+      "resumeCommand": "",
+      "isCustom": false
+    },
+    "dpms": {
+      "id": "dpms",
+      "timeout": 450,
+      "enabled": true,
+      "respectInhibitors": true,
+      "mprisInhibit": false,
+      "command": "",
+      "resumeCommand": "",
+      "isCustom": false
+    },
+    "suspend": {
+      "id": "suspend",
+      "timeout": 600,
+      "enabled": true,
+      "respectInhibitors": true,
+      "mprisInhibit": false,
+      "command": "",
+      "resumeCommand": "",
+      "isCustom": false
+    }
+  },
+  "customActions": []
+}
+```
+
+<Steps>
+  <Step title="Enable the idle system">
+    Set `idle.enabled` to `true`. All four built-in actions are active by default.
+  </Step>
+  <Step title="Adjust timeouts">
+    Change the `timeout` values to suit your workflow. Remember that the order **dim < lock < dpms < suspend** must be maintained — the guide will warn you with a red badge if you violate it.
+  </Step>
+  <Step title="Add inhibitor rules">
+    Set `respectInhibitors` and `mprisInhibit` per action to prevent idle interruptions during video playback or presentations.
+  </Step>
+  <Step title="Override built-in commands">
+    Set `command` on any action to run a custom script instead of the built-in behaviour, for example using a custom lock screen instead of the default one.
+  </Step>
+</Steps>
+
+<Tip>
+  Open the guide's **Idle** tab to configure all actions with live sliders and toggles. The guide validates the timeout pipeline order and highlights violations automatically.
+</Tip>

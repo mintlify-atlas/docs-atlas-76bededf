@@ -1,0 +1,120 @@
+---
+title: "Bar Modules — Workspaces, Tray, Clock & More"
+sidebarTitle: "Bar Modules"
+description: "Explore every Serpantinum bar module — from the workspace switcher and tray to the audio visualizer — and learn how to group, style, and autohide them."
+---
+
+The Serpantinum bar is a fully modular status bar that can be placed at any edge of the screen. Every element you see — the clock, workspace dots, system-tray icons, or audio visualizer — is an independent module you can freely reorder, group into pill clusters, and enable or disable from the Guide popup or directly in `settings.json`. The bar supports horizontal positions (`top`, `bottom`) and vertical positions (`left`, `right`), automatically switching its layout engine between `TopBar.qml` and `SideBar.qml` depending on which edge it occupies.
+
+## Bar Positions
+
+<CardGroup cols={2}>
+  <Card title="Horizontal (Top / Bottom)" icon="minus">
+    Modules are arranged left-to-right in three zones: **left**, **center**, and **right**. The center zone floats true-center on screen.
+  </Card>
+  <Card title="Vertical (Left / Right)" icon="grip-lines-vertical">
+    The same module set is laid out top-to-bottom. The side bar uses `SideBar.qml` and stacks modules with top, center, and bottom regions.
+  </Card>
+</CardGroup>
+
+## Available Modules
+
+The table below lists every module ID you can place in your `bar.modules` configuration, along with what each one does.
+
+| Module ID | Name | Description |
+|-----------|------|-------------|
+| `left` | Actions | The serpentine logo button — opens the Guide popup and provides quick-launch shortcuts |
+| `workspaces` | Workspaces | Clickable workspace indicators; the number of dots is controlled by `bar.workspaceCount` |
+| `focus` | Window Focus | Displays the title of the currently focused window |
+| `media` | Media | Shows the active MPRIS track title; click to open the music popup |
+| `timedate` | Time & Date | Compact clock and date pill; also accepts `time` or `clock` as aliases |
+| `info` | Info Indicators | System-state indicators including screen recording, do-not-disturb, and more |
+| `weather` | Weather | Current conditions from the configured weather location |
+| `tray` | System Tray | XDG system-tray icons from running applications |
+| `kb` | Keyboard Layout | Active keyboard layout identifier |
+| `wifi` | Wi-Fi | Connection status icon; click to open the network panel |
+| `bt` | Bluetooth | Bluetooth adapter status |
+| `vol` | Volume | Current audio output level |
+| `bat` | Battery | Battery percentage and charge state |
+| `vis` | Visualizer | Live Cava audio bar visualizer |
+| `sysmon` | System Monitor | CPU / memory usage at a glance |
+
+<Note>
+  The `timedate` module also responds to the aliases `time` and `clock` in your config. The `info` module responds to `indicator`, `indicators`, and `record`.
+</Note>
+
+## Module Zones
+
+Modules are distributed across three zones — `left`, `center`, and `right`. The default layout from `settings.json` places the logo, workspaces, and media in the left zone; clock, info, and weather in the center; and the system pill group on the right:
+
+```json settings.json
+{
+  "bar": {
+    "modules": {
+      "left": ["left", "workspaces", "media"],
+      "center": [["timedate", "info", "weather"]],
+      "right": ["tray", ["kb", "wifi", "bt", "vol", "bat"]]
+    }
+  }
+}
+```
+
+## Module Grouping
+
+Wrapping multiple module IDs in a **nested array** merges them into a single pill group with a shared background. Grouped modules sit side-by-side with a slight negative gap between them, and can optionally be assigned a color accent via `bar.groupColors`.
+
+```json settings.json
+{
+  "bar": {
+    "modules": {
+      "right": [
+        "tray",
+        ["kb", "wifi", "bt", "vol", "bat"]
+      ]
+    }
+  }
+}
+```
+
+The snippet above produces a standalone tray icon row followed by a single five-item pill containing all the system-status modules.
+
+## Bar Styles
+
+<Tabs>
+  <Tab title="modular">
+    Each module floats as its own independent pill with a border. This is the default style and gives the most visual separation between modules. Grouped arrays still receive a shared rounded background.
+  </Tab>
+  <Tab title="solid">
+    All three zones share one continuous background panel. The bar spans the configured width and fills its background color. When `distinctPills` is also enabled, grouped arrays render as slightly sunken sub-pills inside the solid panel.
+  </Tab>
+  <Tab title="fill">
+    The bar background stretches edge-to-edge across the full monitor width with no inset gap. Outer corner decorators are drawn to blend the fill bar into the screen edge. `distinctPills` is ignored in fill mode.
+  </Tab>
+</Tabs>
+
+Configure the active style with the `bar.style` key:
+
+```json settings.json
+{
+  "bar": {
+    "style": "fill"
+  }
+}
+```
+
+## Autohide
+
+When `bar.autohide` is `true`, the bar slides out of view after `bar.autohideTimeout` milliseconds of inactivity. Moving the cursor back to the screen edge reveals it again. The hide animation translates the bar off-screen along the Y axis (or X axis for side bars) with an `OutQuint` easing curve.
+
+```json settings.json
+{
+  "bar": {
+    "autohide": true,
+    "autohideTimeout": 1000
+  }
+}
+```
+
+<Tip>
+  For the full list of bar configuration keys — including `width`, `opacity`, `time.format`, and `workspaceCount` — see the [Bar Configuration](/configuration/bar) reference page.
+</Tip>

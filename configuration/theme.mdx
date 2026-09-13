@@ -1,0 +1,165 @@
+---
+title: Theme Configuration — Fonts, Colors & Matugen
+sidebarTitle: Theme
+description: Control Serpantinum's font family, corner radius, active color preset, and Matugen wallpaper-based color generation through the theme section.
+---
+
+The `"theme"` section of `settings.json` governs the visual identity of the entire shell — from the typeface used in every label to the palette that drives every surface, accent, and text color. Serpantinum ships with over 90 built-in presets and also supports Matugen, which extracts a harmonious palette directly from your current wallpaper at runtime.
+
+## Parameters
+
+<ParamField path="theme.fontFamily" type="string" default="Adwaita Mono">
+  UI font family applied to all text in the shell. The value must match a font family name recognised by the Qt font system on your machine.
+
+  You can browse and install fonts from inside the guide's **Theme** tab — both system fonts and custom fonts dropped into `~/.local/state/serpantinum/fonts/` are available.
+</ParamField>
+
+<ParamField path="theme.borderRadius" type="integer" default="10">
+  Corner radius in pixels applied consistently to cards, pills, popups, and all other rounded surfaces.
+
+  **Range:** 0 – 64 px. The guide snaps to common values (0, 2, 4, 8, 10, 16, 24, 32, 48, 52, 58, 64) for aesthetically consistent results.
+</ParamField>
+
+<ParamField path="theme.activePreset" type="string" default="Matugen">
+  Name of the active color preset. Must match either a built-in preset filename (without `.json`) or the name of a custom preset saved in `~/.local/state/serpantinum/themes/`.
+
+  When set to `"Matugen"`, the shell uses the dynamically generated palette from the Matugen color extraction run.
+</ParamField>
+
+<ParamField path="theme.matugen" type="boolean" default="true">
+  When `true`, Serpantinum runs Matugen against the current wallpaper to generate the active color palette. The resulting colors overwrite the `colors` object at runtime.
+
+  When `false`, the static `colors` object (or the colors embedded in the named preset) is used directly.
+</ParamField>
+
+<ParamField path="theme.colors" type="object" default="{}">
+  A Catppuccin-shaped hex palette used when `matugen` is `false` or as a fallback before Matugen has run. Any key name is accepted; the standard set mirrors Catppuccin's token names.
+
+  Common keys: `base`, `mantle`, `crust`, `text`, `subtext0`, `subtext1`, `surface0`, `surface1`, `surface2`, `overlay0`, `overlay1`, `overlay2`, `blue`, `sapphire`, `teal`, `green`, `yellow`, `peach`, `red`, `maroon`, `pink`, `mauve`, `flamingo`, `lavender`.
+</ParamField>
+
+## Built-in theme presets
+
+Serpantinum ships with 96 built-in presets. A selection of available names:
+
+<Accordion title="Show all 40+ preset names">
+
+| Gemstone series | Dark themes | Light themes |
+|---|---|---|
+| Alexandrite | Andromeda | Ayu Mirage |
+| Amethyst | Carbonfox | Flexoki Light |
+| Aquamarine | Cobalt2 | GitHub Light |
+| Aventurine | Cyberpunk | PaperColor Light |
+| Benitoite | Dracula | Rose Pine Dawn |
+| Bloodstone | DustFox | Solarized |
+| Carnelian | Espresso | |
+| Chrysocolla | Everforest | |
+| Citrine | Flexoki Dark | |
+| Emerald | Frappe | |
+| Garnet | GitHub Dark | |
+| Heliodor | Gruvbox | |
+| Hematite | Horizon | |
+| Iolite | Jade | |
+| Jasper | Night Owl | |
+| Obsidian | Nightfox | |
+| Onyx | Nord | |
+| Opal | One Dark | |
+| Pearl | Palenight | |
+| Peridot | Panda | |
+| Platinum | Poimandres | |
+| Pyrite | Rose Pine | |
+| Quartz | Rose Pine Moon | |
+| Ruby | Shades of Purple | |
+| Sapphire | SynthWave '84 | |
+| Tanzanite | Tokyo | |
+| Titanium | Tokyo Storm | |
+| Topaz | Vesper | |
+| Tourmaline | | |
+| Turquoise | | |
+| Zircon | | |
+
+</Accordion>
+
+## Theme JSON structure
+
+Each preset is a JSON file with a `name`, optional metadata, and a `colors` object. Here is the full structure of the built-in **Emerald** preset:
+
+```json
+{
+  "name": "Emerald",
+  "isColorFocused": true,
+  "colors": {
+    "base": "#0f1a14",
+    "mantle": "#0a120e",
+    "crust": "#050a07",
+    "text": "#e8fce8",
+    "subtext0": "#badcba",
+    "subtext1": "#d1ecd1",
+    "surface0": "#172b20",
+    "surface1": "#203b2c",
+    "surface2": "#2b4e3a",
+    "overlay0": "#4e7b5e",
+    "overlay1": "#639275",
+    "overlay2": "#79a88c",
+    "blue": "#a6e3a1",
+    "sapphire": "#94e2d5",
+    "peach": "#f9e2af",
+    "green": "#a6e3a1",
+    "red": "#fab387",
+    "mauve": "#89dceb",
+    "pink": "#f5c2e7",
+    "yellow": "#f9e2af",
+    "maroon": "#eba0ac",
+    "teal": "#94e2d5"
+  }
+}
+```
+
+To create a custom preset, click the **+** icon in the guide's theme grid. Your preset is saved to `~/.local/state/serpantinum/themes/` and appears alongside the built-ins immediately.
+
+## How Matugen works
+
+When `matugen` is enabled, Serpantinum monitors your active wallpaper. Whenever the wallpaper changes, it invokes Matugen — a Material You color-extraction tool — against the wallpaper image. Matugen writes its output to `~/.local/state/serpantinum/qs_matugen_colors.json` using the template at `src/assets/matugen/config.toml`. The shell watches that file and applies the new palette live, with no restart required.
+
+Matugen also propagates colors to connected applications through its template system:
+
+| Application | Output path |
+|---|---|
+| Quickshell / Serpantinum | `~/.local/state/serpantinum/qs_colors.json` |
+| Fastfetch | `~/.config/fastfetch/config.jsonc` |
+| Kitty | `~/.config/kitty/colors.conf` |
+| Cava | `~/.config/cava/config` |
+
+<Note>
+  The `colors` object in `settings.json` acts as a fallback while Matugen has not yet run (for example, on first boot). Once Matugen generates colors, it overwrites the runtime palette but does not modify `settings.json` on disk.
+</Note>
+
+## Full example
+
+```json
+"theme": {
+  "fontFamily": "JetBrains Mono",
+  "borderRadius": 10,
+  "activePreset": "Nord",
+  "matugen": false,
+  "colors": {
+    "base": "#2e3440",
+    "mantle": "#272c36",
+    "crust": "#1e2128",
+    "text": "#d8dee9",
+    "subtext0": "#a5abb6",
+    "surface0": "#3b4252",
+    "surface1": "#434c5e",
+    "surface2": "#4c566a",
+    "blue": "#81a1c1",
+    "mauve": "#b48ead",
+    "green": "#a3be8c",
+    "red": "#bf616a",
+    "yellow": "#ebcb8b",
+    "peach": "#d08770",
+    "teal": "#8fbcbb"
+  }
+}
+```
+
+For wallpaper setup and the wallpaper picker, see [Wallpaper](/features/wallpaper).

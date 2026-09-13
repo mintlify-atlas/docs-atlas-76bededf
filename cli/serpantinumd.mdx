@@ -1,0 +1,184 @@
+---
+title: "serpantinumd — Shell Daemon Management"
+sidebarTitle: "serpantinumd"
+description: "Reference for the serpantinumd daemon binary: start, stop, and query the Quickshell shell process, with PID tracking, lock-file safety, and systemd integration."
+---
+
+`serpantinumd` is the process supervisor that keeps Quickshell running as a persistent background daemon. When started, it acquires an exclusive lock at `/tmp/serpantinumd.lock`, writes its PID to `/tmp/serpantinumd.pid`, then launches the Quickshell shell alongside the wellbeing daemon (`launch_daemon.sh`). It monitors the Quickshell process and coordinates a clean shutdown of all child processes when asked to stop. The `serpantinum` client binary calls `serpantinumd` automatically whenever a command requires the shell to be running, so in normal day-to-day use you only interact with `serpantinumd` directly when you want explicit control over the lifecycle.
+
+## Global flags
+
+| Flag | Description |
+|---|---|
+| `-v`, `--verbose` | Enable verbose logging. Sets `SERPANTINUM_VERBOSE=true`. |
+| `-V`, `--version` | Print the installed version and exit. |
+| `-h`, `--help` | Print the help message and exit. |
+
+---
+
+## Commands
+
+If no command is given, `serpantinumd` defaults to `start`.
+
+### `start`
+
+```bash
+serpantinumd start
+```
+
+Acquire `/tmp/serpantinumd.lock` with `flock -n` to prevent duplicate instances. If the lock is already held by a live process the command exits immediately with a message confirming the daemon is already running. On success:
+
+1. Writes its own PID to `/tmp/serpantinumd.pid`.
+2. Launches `src/quickshell/guide/wellbeing/launch_daemon.sh` in the background.
+3. Executes `quickshell -p <Shell.qml>` and waits for it to exit.
+4. On `SIGTERM`, `SIGINT`, or `SIGHUP`, runs the cleanup routine — sends `SIGTERM` to all tracked children, waits up to one second, escalates to `SIGKILL` for any survivors, then removes the PID and lock files.
+
+```bash
+serpantinumd start
+# or simply:
+serpantinumd
+```
+
+<Warning>
+Running a second `serpantinumd start` while one is already active has no effect — the lock file prevents duplicates. Use `serpantinumd status` to confirm whether an instance is already running.
+</Warning>
+
+---
+
+### `stop`
+
+```bash
+serpantinumd stop
+```
+
+Gracefully stop the running daemon and all processes it owns. The command:
+
+1. Reads the PID from `/tmp/serpantinumd.pid`.
+2. Sends `SIGTERM` to any `focus_daemon.py` processes and the active Quickshell instance.
+3. Calls `terminate_and_wait` on the daemon PID (waits up to 2 seconds, then escalates to `SIGKILL`).
+4. Force-kills any remaining stragglers.
+5. Removes `/tmp/serpantinumd.pid` and `/tmp/serpantinumd.lock`.
+
+```bash
+serpantinumd stop
+```
+
+---
+
+### `status`
+
+```bash
+serpantinumd status
+```
+
+Check whether the daemon is currently running. Reads `/tmp/serpantinumd.pid` and verifies the PID is alive via `/proc`. Exits with code `0` if running (and prints the PID), or exits with code `1` if stopped.
+
+```bash
+serpantinumd status
+# Running output example:
+#   serpantinumd is running (PID 12345)
+
+# Stopped output example:
+#   serpantinumd is not running
+```
+
+---
+
+## Runtime files
+
+| Path | Purpose |
+|---|---|
+| `/tmp/serpantinumd.pid` | Contains the PID of the running `serpantinumd` process. |
+| `/tmp/serpantinumd.lock` | `flock`-based exclusive lock that prevents duplicate instances. |
+
+Both files are created on `start` and removed on `stop` or clean shutdown.
+
+---
+
+## Autostart with your compositor
+
+The recommended way to start Serpantinum automatically is to launch `serpantinumd` from your compositor's startup configuration. See the [Compositor Setup overview](/compositors/overview) for general guidance, or the compositor-specific pages for exact snippets.
+
+<Tabs>
+  <Tab title="Hyprland">
+    Add the following to your Hyprland config (typically `~/.config/hypr/hyprland.conf`):
+
+    ```ini
+    exec-once = serpantinumd start
+    ```
+  </Tab>
+  <Tab title="Niri">
+    Add to your Niri config (`~/.config/niri/config.kdl`):
+
+    ```kdl
+    spawn-at-startup "serpantinumd" "start"
+    ```
+  </Tab>
+  <Tab title="Sway">
+    Add to your Sway config (`~/.config/sway/config`):
+
+    ```bash
+    exec serpantinumd start
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## NixOS / Home Manager — systemd user service
+
+When using the Home Manager module, `serpantinumd` can be managed as a `systemd --user` service that starts and stops with your graphical session.
+
+```nix
+programs.serpantinum = {
+  enable = true;
+
+  systemd = {
+    enable = true;                          # default: true on Linux
+    target = "graphical-session.target";    # default value
+    environment = {
+      QT_QPA_PLATFORM = "wayland";
+    };
+  };
+};
+```
+
+The generated unit runs `serpantinumd start`, sets `Restart=on-failure`, uses `KillMode=mixed` for clean shutdown, and is bound to the configured `target`. Settings-file changes are tracked via `X-Restart-Triggers` so the service restarts automatically when your `programs.serpantinum.settings` change.
+
+<Tip>
+Set `systemd.enable = false` if you prefer to handle autostart through compositor `exec-once` / `exec` directives instead of systemd.
+</Tip>
+
+---
+
+## Usage examples
+
+<CodeGroup>
+```bash Start / stop / status
+# Start the daemon (foreground; compositor autostart runs this)
+serpantinumd start
+
+# Check whether it is running
+serpantinumd status
+
+# Gracefully stop the daemon
+serpantinumd stop
+```
+```bash Verbose mode
+# Start with debug output
+serpantinumd --verbose start
+
+# Stop with verbose output
+serpantinumd -v stop
+```
+```bash Version check
+serpantinumd --version
+# serpantinumd v2.0.0
+```
+</CodeGroup>
+
+---
+
+<Card title="serpantinum CLI Reference" icon="terminal" href="/cli/serpantinum">
+  See all shell control commands — launch targets, panel messaging, volume, brightness, screenshots, and more.
+</Card>

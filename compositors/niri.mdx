@@ -1,0 +1,248 @@
+---
+title: Niri Integration Guide for Serpantinum
+sidebarTitle: Niri
+description: Connect Serpantinum to the Niri compositor using KDL config files — covering autostart, keybindings, layout, input, environment, and output settings.
+---
+
+Serpantinum ships a modular Niri configuration written in KDL, located at `compositors/niri/` in the repository. The root file is `config.kdl`, which pulls in six sub-files via `include` directives: `env`, `input`, `output`, `layout`, `autostart`, and `keybinds`. Copying this directory to `~/.config/niri/` gives you an immediately usable setup that you can tailor to your hardware and workflow without starting from scratch.
+
+<Tip>
+  Copy the entire `compositors/niri/` directory to `~/.config/niri/` and adjust `config/input.kdl`, `config/output.kdl`, and `config/keybinds.kdl` to match your keyboard layout, display, and preferred modifier key.
+</Tip>
+
+## Entry Point
+
+The root `config.kdl` assembles the full configuration from separate include files:
+
+```kdl config.kdl
+include "config/env.kdl"
+include "config/input.kdl"
+include "config/output.kdl"
+include "config/layout.kdl"
+include "config/autostart.kdl"
+include "config/keybinds.kdl"
+```
+
+## Environment Variables
+
+`config/env.kdl` sets the XDG session variables required for Wayland-native applications and toolkit integration, including an Ozone hint for Chromium-based apps:
+
+```kdl config/env.kdl
+environment {
+    NIXOS_OZONE_WL "1"
+    XDG_CURRENT_DESKTOP "Niri"
+    XDG_SESSION_TYPE "wayland"
+    XDG_SESSION_DESKTOP "Niri"
+}
+```
+
+## Autostart
+
+`config/autostart.kdl` launches `serpantinumd` and the two required background services using `spawn-at-startup` directives:
+
+```kdl config/autostart.kdl
+spawn-at-startup "bash" "-c" "wl-paste --type text --watch cliphist store"
+spawn-at-startup "bash" "-c" "wl-paste --type image --watch cliphist store"
+spawn-at-startup "systemctl" "--user" "enable" "--now" "easyeffects"
+spawn-at-startup "serpantinumd" "start"
+```
+
+<Warning>
+  All four entries are required. The `cliphist` watchers must be running before the shell starts or clipboard history will be empty. EasyEffects must be enabled for the audio equalizer inside Serpantinum to have any effect.
+</Warning>
+
+## Input Configuration
+
+`config/input.kdl` configures keyboard layout and touchpad behaviour. The hotkey overlay is hidden on startup since Serpantinum provides its own guide panel:
+
+```kdl config/input.kdl
+hotkey-overlay {
+    skip-at-startup
+}
+
+input {
+    keyboard {
+        xkb {
+            layout "us"
+            options "grp:alt_shift_toggle"
+        }
+    }
+    touchpad {
+        tap
+        natural-scroll
+        accel-profile "flat"
+        click-method "clickfinger"
+    }
+}
+```
+
+<Info>
+  Change `layout "us"` to your locale (e.g. `"gb"`, `"de"`) and adjust `options` if you use a different layout-switching shortcut. The `grp:alt_shift_toggle` option switches between layouts with Alt+Shift.
+</Info>
+
+## Output Configuration
+
+`config/output.kdl` sets scale and DPI for the built-in display. Add additional `output` blocks for external monitors:
+
+```kdl config/output.kdl
+output "eDP-1" {
+    scale 1.0
+}
+```
+
+## Layout Configuration
+
+`config/layout.kdl` configures the tiling layout with minimal gaps and no borders or focus rings, leaving visual chrome to Serpantinum's bar:
+
+```kdl config/layout.kdl
+layout {
+    gaps 4
+    border {
+        off
+    }
+    focus-ring {
+        off
+    }
+}
+```
+
+## Key Bindings
+
+`config/keybinds.kdl` defines all keybindings inside a single `binds { }` block. `Mod` refers to the Super key.
+
+### Serpantinum Shell Commands
+
+These bindings toggle shell panels, reload the shell, and switch workspaces via `serpantinum msg`:
+
+```kdl config/keybinds.kdl — shell binds
+binds {
+    Mod+R { spawn "serpantinum" "reload"; }
+    Mod+C { spawn "serpantinum" "msg" "toggle" "clipboard"; }
+    Mod+D { spawn "serpantinum" "msg" "toggle" "launcher"; }
+    Mod+M { spawn "serpantinum" "msg" "toggle" "music"; }
+    Mod+B { spawn "serpantinum" "msg" "toggle" "system"; }
+    Mod+W { spawn "serpantinum" "msg" "toggle" "wallpaper"; }
+    Mod+S { spawn "serpantinum" "msg" "toggle" "calendar"; }
+    Mod+N { spawn "serpantinum" "msg" "toggle" "network"; }
+    Mod+V { spawn "serpantinum" "msg" "toggle" "volume"; }
+    Mod+H { spawn "serpantinum" "msg" "toggle" "guide"; }
+    Mod+A { spawn "serpantinum" "msg" "toggle" "autohide"; }
+}
+```
+
+Workspace switching also routes through the shell:
+
+```kdl config/keybinds.kdl — workspace binds
+binds {
+    Mod+1 { spawn "serpantinum" "msg" "workspace" "1"; }
+    Mod+2 { spawn "serpantinum" "msg" "workspace" "2"; }
+    Mod+3 { spawn "serpantinum" "msg" "workspace" "3"; }
+    Mod+4 { spawn "serpantinum" "msg" "workspace" "4"; }
+    Mod+5 { spawn "serpantinum" "msg" "workspace" "5"; }
+    Mod+6 { spawn "serpantinum" "msg" "workspace" "6"; }
+    Mod+7 { spawn "serpantinum" "msg" "workspace" "7"; }
+    Mod+8 { spawn "serpantinum" "msg" "workspace" "8"; }
+    Mod+9 { spawn "serpantinum" "msg" "workspace" "9"; }
+    Mod+0 { spawn "serpantinum" "msg" "workspace" "10"; }
+
+    Mod+Shift+1 { spawn "serpantinum" "msg" "workspace" "1" "move"; }
+    Mod+Shift+2 { spawn "serpantinum" "msg" "workspace" "2" "move"; }
+    Mod+Shift+3 { spawn "serpantinum" "msg" "workspace" "3" "move"; }
+    Mod+Shift+4 { spawn "serpantinum" "msg" "workspace" "4" "move"; }
+    Mod+Shift+5 { spawn "serpantinum" "msg" "workspace" "5" "move"; }
+    Mod+Shift+6 { spawn "serpantinum" "msg" "workspace" "6" "move"; }
+    Mod+Shift+7 { spawn "serpantinum" "msg" "workspace" "7" "move"; }
+    Mod+Shift+8 { spawn "serpantinum" "msg" "workspace" "8" "move"; }
+    Mod+Shift+9 { spawn "serpantinum" "msg" "workspace" "9" "move"; }
+    Mod+Shift+0 { spawn "serpantinum" "msg" "workspace" "10" "move"; }
+}
+```
+
+### Screenshot, Lock, and Brightness
+
+```kdl config/keybinds.kdl — system binds
+binds {
+    XF86MonBrightnessDown { spawn "serpantinum" "brightness" "lower"; }
+    XF86MonBrightnessUp   { spawn "serpantinum" "brightness" "raise"; }
+
+    Print            { spawn "serpantinum" "screenshot"; }
+    Shift+Print      { spawn "serpantinum" "screenshot" "--edit"; }
+    Super+Print      { spawn "serpantinum" "screenshot" "--full"; }
+    Super+Shift+Print { spawn "serpantinum" "screenshot" "--full" "--edit"; }
+
+    XF86PowerOff { spawn "serpantinum" "lock"; }
+    Mod+L        { spawn "serpantinum" "lock"; }
+}
+```
+
+### Volume and Media
+
+```kdl config/keybinds.kdl — audio binds
+binds {
+    XF86AudioMicMute    { spawn "serpantinum" "volume" "mic-toggle"; }
+    XF86AudioMute       { spawn "serpantinum" "volume" "mute-toggle"; }
+    XF86AudioLowerVolume { spawn "serpantinum" "volume" "lower"; }
+    XF86AudioRaiseVolume { spawn "serpantinum" "volume" "raise"; }
+
+    Mod+Space    { spawn "playerctl" "play-pause"; }
+    XF86AudioPause { spawn "playerctl" "play-pause"; }
+    XF86AudioPlay  { spawn "playerctl" "play-pause"; }
+    XF86AudioPrev  { spawn "playerctl" "previous"; }
+    XF86AudioNext  { spawn "playerctl" "next"; }
+}
+```
+
+### Window Management
+
+```kdl config/keybinds.kdl — window management
+binds {
+    Mod+Return { spawn "kitty"; }
+    Mod+F      { spawn "firefox"; }
+    Mod+E      { spawn "nautilus"; }
+    Mod+Backspace { toggle-overview; }
+    Mod+Q      { close-window; }
+    Mod+Shift+F { toggle-window-floating; }
+
+    Mod+Left  { focus-column-left; }
+    Mod+Right { focus-column-right; }
+    Mod+Up    { focus-window-or-workspace-up; }
+    Mod+Down  { focus-window-or-workspace-down; }
+
+    Mod+Ctrl+Left  { move-column-left; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+Up    { move-column-to-workspace-up; }
+    Mod+Ctrl+Down  { move-column-to-workspace-down; }
+
+    Mod+Shift+Left  { set-column-width "-5%"; }
+    Mod+Shift+Right { set-column-width "+5%"; }
+    Mod+Shift+Up    { set-window-height "-5%"; }
+    Mod+Shift+Down  { set-window-height "+5%"; }
+}
+```
+
+## Quick Reference
+
+<Accordion title="All Serpantinum Shell Keybinds at a Glance">
+
+| Keybind | Action |
+|---|---|
+| `Mod + R` | Reload the shell |
+| `Mod + H` | Toggle the guide panel |
+| `Mod + D` | Toggle the app launcher |
+| `Mod + M` | Toggle the music player |
+| `Mod + B` | Toggle the system panel |
+| `Mod + N` | Toggle the network panel |
+| `Mod + V` | Toggle the volume panel |
+| `Mod + C` | Toggle clipboard history |
+| `Mod + W` | Toggle wallpaper picker |
+| `Mod + S` | Toggle the calendar |
+| `Mod + A` | Toggle bar auto-hide |
+| `Mod + L` | Lock the screen |
+| `Mod + 1–0` | Switch to workspace 1–10 |
+| `Mod + Shift + 1–0` | Move window to workspace 1–10 |
+| `Print` | Region screenshot |
+| `Shift + Print` | Region screenshot with editor |
+| `Super + Print` | Full-screen screenshot |
+| `Super + Shift + Print` | Full-screen screenshot with editor |
+
+</Accordion>

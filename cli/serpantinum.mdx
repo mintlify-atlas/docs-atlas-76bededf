@@ -1,0 +1,486 @@
+---
+title: "serpantinum CLI — Shell Control Commands"
+sidebarTitle: "serpantinum"
+description: "Full reference for the serpantinum binary: launch QML targets, send IPC messages, control volume and brightness, capture screenshots, and manage the running shell."
+---
+
+The `serpantinum` binary is the primary user-facing interface for Serpantinum. It lets you launch the shell, send messages to running panels, query system state, and invoke helper scripts for volume, brightness, weather, screenshots, and more. Every invocation either acts on the running shell directly (through IPC) or delegates to a purpose-built script inside the `src/scripts/` directory. If the daemon is not already running when a command needs it, `serpantinum` starts `serpantinumd` automatically before executing.
+
+## Global flags
+
+These flags are parsed before any subcommand and apply to every operation.
+
+| Flag | Description |
+|---|---|
+| `-v`, `--verbose` | Enable verbose output. Sets `SERPANTINUM_VERBOSE=true` for child scripts. |
+| `-V`, `--version` | Print the installed version string and exit. |
+| `-h`, `--help` | Print the help message and exit. |
+
+---
+
+## Core commands
+
+### `launch`
+
+```bash
+serpantinum launch <target> [args...]
+```
+
+Starts a Quickshell QML target by locating the matching `.qml` file under `src/quickshell/` and executing it through `quickshell`. The daemon is started automatically if it is not already running.
+
+**Available targets**
+
+| Target | Description |
+|---|---|
+| `start` | Launch the main shell (`Shell.qml` / `Bar.qml`). |
+| `widgetredactor` | Open the widget editor (`WidgetRedactor.qml`). |
+
+<CodeGroup>
+```bash Start shell
+serpantinum launch start
+```
+```bash Open widget editor
+serpantinum launch widgetredactor
+```
+</CodeGroup>
+
+---
+
+### `msg`
+
+```bash
+serpantinum msg <action> [target] [subtarget]
+```
+
+Sends a command to the running shell via the Quickshell IPC bridge. The daemon is started if needed. All workspace switching and panel open/close/toggle operations go through `msg`.
+
+<Accordion title="msg workspace">
+```bash
+serpantinum msg workspace <num> [move]
+```
+
+Switch the compositor focus to workspace `<num>`, or move the current window there when `move` is appended. Workspace numbering starts at `1`. The valid upper bound defaults to `8` and follows the `bar.workspaceCount` setting.
+
+Internally the command dispatches to the correct compositor tool:
+- **Hyprland** — `hyprctl dispatch`
+- **Niri** — `niri msg action focus-workspace` / `move-window-to-workspace`
+- **Sway** — `swaymsg workspace number` / `swaymsg move container to workspace number`
+
+```bash
+# Switch to workspace 3
+serpantinum msg workspace 3
+
+# Move the focused window to workspace 5
+serpantinum msg workspace 5 move
+```
+</Accordion>
+
+<Accordion title="msg open">
+```bash
+serpantinum msg open <target> [subtarget]
+```
+
+Open the named panel. An optional `subtarget` further specifies the initial view; for example, opening the network panel directly on the Wi-Fi tab uses `wifi` as the subtarget.
+
+**Available targets**
+
+`network`, `volume`, `guide`, `calendar`, `music`, `notifications`, `system`, `wallpaper`, `launcher`, `clipboard`
+
+```bash
+# Open the network panel
+serpantinum msg open network
+
+# Open the network panel on the Wi-Fi view
+serpantinum msg open network wifi
+
+# Open the settings guide
+serpantinum msg open guide
+```
+</Accordion>
+
+<Accordion title="msg toggle">
+```bash
+serpantinum msg toggle <target>
+```
+
+Toggle a named panel — open it if currently closed, close it if open.
+
+**Available targets**
+
+`network`, `volume`, `guide`, `calendar`, `music`, `notifications`, `system`, `wallpaper`, `launcher`, `clipboard`
+
+```bash
+serpantinum msg toggle launcher
+serpantinum msg toggle clipboard
+serpantinum msg toggle music
+```
+</Accordion>
+
+<Accordion title="msg close">
+```bash
+serpantinum msg close
+```
+
+Close whichever panel is currently active.
+
+```bash
+serpantinum msg close
+```
+</Accordion>
+
+---
+
+### `ipc`
+
+```bash
+serpantinum ipc <...>
+```
+
+Send a raw IPC call directly to the running Quickshell shell process. Arguments are forwarded verbatim to `quickshell ipc call main handleCommand`. Use this when you need to invoke IPC functions not exposed through the higher-level `msg` command.
+
+```bash
+# Call an IPC function with custom arguments
+serpantinum ipc call main handleCommand toggle launcher ""
+```
+
+<Note>
+The `ipc` subcommand requires the shell (Quickshell) to already be running. It will start the daemon first but will error if `Shell.qml` cannot be located.
+</Note>
+
+---
+
+### `kill`
+
+```bash
+serpantinum kill
+```
+
+Terminate the daemon and all managed processes. This sends `SIGTERM` to the `serpantinumd` PID read from `/tmp/serpantinumd.pid`, then kills any remaining `focus_daemon.py` and Quickshell processes with `SIGKILL`. Both `/tmp/serpantinumd.pid` and `/tmp/serpantinumd.lock` are removed.
+
+```bash
+serpantinum kill
+```
+
+---
+
+## Script commands
+
+These commands delegate to standalone scripts in `src/scripts/`. Passing `--verbose` / `-v` at the top level also propagates the flag to each script.
+
+### `exit`
+
+```bash
+serpantinum exit
+```
+
+Trigger a system-level exit (log out or shut down) from the shell.
+
+---
+
+### `lock`
+
+```bash
+serpantinum lock
+```
+
+Lock the screen. The specific lock program is determined by the shell's lock script (`src/scripts/lock.sh`).
+
+---
+
+### `reload`
+
+```bash
+serpantinum reload
+```
+
+Reload the shell in-place without fully restarting the daemon.
+
+---
+
+### `volume`
+
+```bash
+serpantinum volume <action>
+```
+
+Control the default audio sink or source through WirePlumber (`wpctl`).
+
+**Actions**
+
+| Action | Description |
+|---|---|
+| `raise` | Raise default output volume by 5 % (capped at 100 %). |
+| `lower` | Lower default output volume by 5 %. |
+| `mute-toggle` | Toggle mute on the default audio output. |
+| `mic-toggle` | Toggle mute on the default audio input. |
+| `mic-raise` | Raise microphone volume by 5 % (capped at 100 %). |
+| `mic-lower` | Lower microphone volume by 5 %. |
+
+```bash
+serpantinum volume raise
+serpantinum volume mute-toggle
+serpantinum volume mic-toggle
+```
+
+---
+
+### `brightness`
+
+```bash
+serpantinum brightness <action> [value]
+```
+
+Control display brightness. Uses `brightnessctl` for laptop backlight and DDC/CI (`ddcutil`) for external monitors. The backend in use can be queried with `backend`.
+
+**Actions**
+
+| Action | Description |
+|---|---|
+| `get` | Print the current brightness percentage. |
+| `set <0-100>` | Set brightness to an absolute percentage. |
+| `raise` | Increase brightness by 5 %. |
+| `lower` | Decrease brightness by 5 %. |
+| `backend` | Print the active backend: `backlight`, `ddc`, or `none`. |
+| `watch` | Watch for brightness changes using `inotifywait` (used internally by the shell). |
+
+```bash
+serpantinum brightness get
+serpantinum brightness set 70
+serpantinum brightness raise
+serpantinum brightness lower
+serpantinum brightness backend
+```
+
+---
+
+### `screenshot`
+
+```bash
+serpantinum screenshot [options]
+```
+
+Capture a screenshot with interactive region selection powered by `grim` and `satty`. When no options are given, an interactive overlay opens inside the running Quickshell session. The saved file is copied to the clipboard via `wl-copy` and a notification is sent.
+
+**Flags**
+
+| Flag | Description |
+|---|---|
+| `--full` | Capture the full screen without interactive selection. |
+| `--edit` | Open the captured image in `satty` for annotation. |
+| `--record` | Start a screen recording (toggle: a second call stops it). |
+| `--scan-qr` | Capture a region and decode any QR code found. |
+| `--geometry <WxH+X+Y>` | Capture a specific geometry directly. |
+| `--monitor <name>` | Target a specific output by name. |
+| `--backend <name>` | Video backend for `--record`: `gpu-screen-recorder` (default) or `wf-recorder`. |
+
+```bash
+# Interactive region screenshot
+serpantinum screenshot
+
+# Full-screen capture
+serpantinum screenshot --full
+
+# Annotate after capture
+serpantinum screenshot --edit
+
+# Start/stop screen recording
+serpantinum screenshot --record
+```
+
+Screenshots are saved to `$XDG_PICTURES_DIR/Screenshots/` (defaults to `~/Pictures/Screenshots`). Recordings go to `$XDG_VIDEOS_DIR/Recordings/` (defaults to `~/Videos/Recordings`).
+
+---
+
+### `weather`
+
+```bash
+serpantinum weather [--current-temp]
+```
+
+Fetch and display weather data from [Open-Meteo](https://open-meteo.com/). The data is cached and refreshed automatically at 15-minute intervals. Location is resolved from the stored settings (see `location` below).
+
+**Flags**
+
+| Flag | Description |
+|---|---|
+| `--current-temp` | Print the current temperature with unit symbol (e.g. `18.5°C`). |
+| `--current-icon` | Print the Nerd Font icon for current conditions. |
+| `--current-hex` | Print the hex colour for the current weather icon. |
+| `--json` | Output the full weather JSON payload (auto-refreshes cache if stale). |
+| `--getdata` | Force a fresh fetch and write to cache. |
+| `--icon` | Print the forecast icon for today. |
+| `--temp` | Print today's maximum temperature. |
+| `--hex` | Print today's forecast hex colour. |
+| `--nav next\|prev` | Advance or rewind the weather view page. |
+| `--location <json>` | Override the location JSON for this invocation. |
+| `--unit metric\|imperial\|standard` | Override the temperature unit. |
+
+```bash
+# Print current temperature
+serpantinum weather --current-temp
+
+# Fetch fresh data
+serpantinum weather --getdata
+```
+
+---
+
+### `location`
+
+```bash
+serpantinum location [--refresh]
+```
+
+Detect the current geographic location via IP geolocation (using `ipapi.co` as primary provider) and store it in the settings for use by the weather command. The result is cached; use `--refresh` to force a new lookup.
+
+```bash
+serpantinum location
+serpantinum location --refresh
+```
+
+---
+
+### `location_manual`
+
+```bash
+serpantinum location_manual <latitude> <longitude>
+```
+
+Manually set the geographic coordinates used for weather. Reverse-geocodes the supplied coordinates via the BigDataCloud API to fill in city, region, and country. Triggers a background weather data refresh after saving.
+
+```bash
+serpantinum location_manual 48.85 2.35
+```
+
+---
+
+### `current_focus`
+
+```bash
+serpantinum current_focus
+```
+
+Output the currently focused window's application class and title as a JSON line. Detects whether Hyprland or Niri is running and queries the appropriate API. The output is written to a state file and appended to a focus event log used by the shell's wellbeing/focus-time features.
+
+```bash
+serpantinum current_focus
+```
+
+---
+
+### `monitors_detect`
+
+```bash
+serpantinum monitors_detect [--verbose]
+```
+
+Enumerate connected monitors. The command tries each available tool in order — `hyprctl`, `niri`, `swaymsg`, `wlr-randr`, `xrandr`, and finally `/sys/class/drm` — stopping at the first that returns results. Without `--verbose` it prints one monitor name per line; with `--verbose` it prints `name|resolution|refresh` triples.
+
+```bash
+# List monitor names
+serpantinum monitors_detect
+
+# List names with resolution and refresh rate
+serpantinum monitors_detect --verbose
+```
+
+---
+
+### `blue_light_filter`
+
+```bash
+serpantinum blue_light_filter <command> [args...]
+```
+
+Manage the blue-light filter via `wl-gammarelay-rs`. Temperature values are specified in Kelvin (range 1000 – 10000; daytime default is 6500 K).
+
+**Subcommands**
+
+| Subcommand | Arguments | Description |
+|---|---|---|
+| `set` | `<temp> [output] [mode] [lat] [lon]` | Set the colour temperature. `mode` is `manual` (default) or `auto` (solar-angle-based schedule). |
+| `reset` | `[output]` | Reset temperature, brightness, gamma, and inversion to defaults. |
+| `status` | `[output]` | Print `running` or `stopped`. |
+
+```bash
+# Set a warm temperature manually
+serpantinum blue_light_filter set 3500
+
+# Enable solar auto-schedule for a specific output
+serpantinum blue_light_filter set 3200 DP-1 auto 48.85 2.35
+
+# Reset all outputs
+serpantinum blue_light_filter reset
+
+# Check filter status
+serpantinum blue_light_filter status
+```
+
+<Note>
+`wl-gammarelay-rs` must be installed for this command to work. The filter uses `busctl --user` to communicate with the gammarelay D-Bus service.
+</Note>
+
+---
+
+## Usage examples
+
+<CodeGroup>
+```bash Shell management
+# Launch the main shell
+serpantinum launch start
+
+# Reload the shell in place
+serpantinum reload
+
+# Kill the daemon and all managed processes
+serpantinum kill
+```
+```bash Workspace switching
+# Focus workspace 2
+serpantinum msg workspace 2
+
+# Move the active window to workspace 4
+serpantinum msg workspace 4 move
+```
+```bash Panel control
+# Open the app launcher
+serpantinum msg open launcher
+
+# Toggle the music panel
+serpantinum msg toggle music
+
+# Open the network panel on the Wi-Fi tab
+serpantinum msg open network wifi
+
+# Close whatever panel is open
+serpantinum msg close
+```
+```bash System controls
+# Raise speaker volume
+serpantinum volume raise
+
+# Mute the microphone
+serpantinum volume mic-toggle
+
+# Set brightness to 60 %
+serpantinum brightness set 60
+
+# Take a screenshot with region select
+serpantinum screenshot
+
+# Display the current temperature
+serpantinum weather --current-temp
+
+# Set location manually (Paris)
+serpantinum location_manual 48.85 2.35
+
+# Enable warm blue-light filter at night
+serpantinum blue_light_filter set 3500
+```
+</CodeGroup>
+
+---
+
+<Card title="serpantinumd — Daemon Reference" icon="server" href="/cli/serpantinumd">
+  Learn how `serpantinumd` manages the Quickshell process lifecycle, including start, stop, and status commands.
+</Card>

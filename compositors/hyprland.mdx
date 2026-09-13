@@ -1,0 +1,200 @@
+---
+title: Hyprland Integration Guide for Serpantinum
+sidebarTitle: Hyprland
+description: Set up Serpantinum with Hyprland using the provided Lua config — covering autostart, keybindings, environment variables, and monitor configuration.
+---
+
+Serpantinum ships a ready-to-use Hyprland configuration written in Lua, located at `compositors/hyprland/` in the repository. The entry point is `hyprland.lua`, which requires six sub-modules: `variables`, `env`, `autostart`, `monitors`, `settings`, and `keybinds`. Copying this directory to your Hyprland config location gives you a working starting point that you can customize for your hardware and workflow.
+
+<Tip>
+  Copy the entire `compositors/hyprland/` directory to your Hyprland config path (usually `~/.config/hypr/`) and adjust `config/variables.lua`, `config/monitors.lua`, and `config/keybinds.lua` to match your system before first launch.
+</Tip>
+
+## Entry Point
+
+The root config file loads all sub-modules in order:
+
+```lua hyprland.lua
+require("config/variables")
+require("config/env")
+require("config/autostart")
+require("config/monitors")
+require("config/settings")
+require("config/keybinds")
+```
+
+## Variables
+
+`config/variables.lua` defines the modifier key and default terminal used throughout the keybinds file:
+
+```lua config/variables.lua
+mainMod = "SUPER"
+terminal = "kitty"
+```
+
+Change `mainMod` or `terminal` here and every keybind that references `_G.mainMod` or `_G.terminal` will pick up the new value automatically.
+
+## Environment Variables
+
+`config/env.lua` sets the three standard Wayland/XDG environment variables that many applications need to detect a Hyprland session:
+
+```lua config/env.lua
+hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
+hl.env("XDG_SESSION_TYPE", "wayland")
+hl.env("XDG_SESSION_DESKTOP", "Hyprland")
+```
+
+## Autostart
+
+`config/autostart.lua` uses `hl.on("hyprland.start", ...)` to launch all required services once the compositor is ready. The block starts `serpantinumd`, registers both clipboard watchers, and enables the EasyEffects audio equalizer:
+
+```lua config/autostart.lua
+hl.on("hyprland.start", function()
+  hl.exec_cmd("wl-paste --type text --watch cliphist store")
+  hl.exec_cmd("wl-paste --type image --watch cliphist store")
+  hl.exec_cmd("systemctl --user enable --now easyeffects")
+  hl.exec_cmd("serpantinumd start")
+end)
+```
+
+<Warning>
+  All four entries are required. Omitting the `cliphist` watchers disables clipboard history in the shell, and omitting `easyeffects` means the audio equalizer will not be active.
+</Warning>
+
+## Monitor Setup
+
+`config/monitors.lua` configures a single catch-all monitor rule that applies to any connected output:
+
+```lua config/monitors.lua
+hl.monitor({
+  output = "",
+  mode = "preferred",
+  position = "auto",
+  scale = 1.0,
+})
+```
+
+<Info>
+  The empty string in `output` matches all monitors. If you have a multi-monitor setup or need a specific resolution or scale per display, add additional `hl.monitor({})` calls with the exact output name (e.g. `"eDP-1"` or `"HDMI-A-1"`) before the catch-all entry.
+</Info>
+
+## Key Bindings
+
+`config/keybinds.lua` wires up all Serpantinum shell commands alongside standard window-management binds. The file references `_G.mainMod` and `_G.terminal` from `variables.lua`.
+
+### Serpantinum Shell Commands
+
+These bindings toggle panels, control the shell, and switch workspaces via `serpantinum msg`:
+
+```lua config/keybinds.lua — shell binds
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("serpantinum reload"))
+hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("serpantinum msg toggle clipboard"))
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("serpantinum msg toggle launcher"))
+hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("serpantinum msg toggle music"))
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("serpantinum msg toggle system"))
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("serpantinum msg toggle wallpaper"))
+hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("serpantinum msg toggle calendar"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("serpantinum msg toggle network"))
+hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("serpantinum msg toggle volume"))
+hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("serpantinum msg toggle guide"))
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("serpantinum msg toggle autohide"))
+```
+
+Workspaces are switched through the shell daemon as well:
+
+```lua config/keybinds.lua — workspace binds
+for i = 1, 10 do
+  local ws = tostring(i)
+  local key = tostring(i % 10)
+  hl.bind(mainMod .. " + " .. key, hl.dsp.exec_cmd("serpantinum msg workspace " .. ws))
+  hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.exec_cmd("serpantinum msg workspace " .. ws .. " move"))
+end
+```
+
+### Screenshot, Lock, and Brightness
+
+```lua config/keybinds.lua — system binds
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("serpantinum brightness lower"), { locked = true })
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("serpantinum brightness raise"), { locked = true })
+
+hl.bind("Print",              hl.dsp.exec_cmd("serpantinum screenshot"),              { locked = true })
+hl.bind("SHIFT + Print",      hl.dsp.exec_cmd("serpantinum screenshot --edit"),       { locked = true })
+hl.bind("SUPER + Print",      hl.dsp.exec_cmd("serpantinum screenshot --full"),       { locked = true })
+hl.bind("SUPER + SHIFT + Print", hl.dsp.exec_cmd("serpantinum screenshot --full --edit"), { locked = true })
+
+hl.bind("XF86PowerOff",       hl.dsp.exec_cmd("serpantinum lock"), { locked = true })
+hl.bind(mainMod .. " + L",    hl.dsp.exec_cmd("serpantinum lock"), { repeating = true, locked = true })
+```
+
+### Volume and Media
+
+```lua config/keybinds.lua — audio binds
+hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("serpantinum volume mic-toggle"),  { locked = true })
+hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("serpantinum volume mute-toggle"), { locked = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("serpantinum volume lower"),       { repeating = true, locked = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("serpantinum volume raise"),       { repeating = true, locked = true })
+
+hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPause",      hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPlay",       hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPrev",       hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+hl.bind("XF86AudioNext",       hl.dsp.exec_cmd("playerctl next"),       { locked = true })
+```
+
+### Window Management
+
+```lua config/keybinds.lua — window management
+hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
+hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+
+hl.bind(mainMod .. " + Q",       hl.dsp.window.close())
+hl.bind(mainMod .. " + SHIFT+F", hl.dsp.window.float({ action = "toggle" }))
+
+hl.bind(mainMod .. " + Left",  hl.dsp.focus({ direction = "left" }))
+hl.bind(mainMod .. " + Right", hl.dsp.focus({ direction = "right" }))
+hl.bind(mainMod .. " + Up",    hl.dsp.focus({ direction = "up" }))
+hl.bind(mainMod .. " + Down",  hl.dsp.focus({ direction = "down" }))
+
+hl.bind(mainMod .. " + SHIFT + Left",  hl.dsp.window.resize({ x = -50, y = 0,  relative = true }), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + Right", hl.dsp.window.resize({ x = 50,  y = 0,  relative = true }), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + Up",    hl.dsp.window.resize({ x = 0,   y = -50, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + Down",  hl.dsp.window.resize({ x = 0,   y = 50,  relative = true }), { repeating = true })
+
+hl.bind(mainMod .. " + CTRL + Left",  hl.dsp.window.move({ direction = "l" }))
+hl.bind(mainMod .. " + CTRL + Right", hl.dsp.window.move({ direction = "r" }))
+hl.bind(mainMod .. " + CTRL + Up",    hl.dsp.window.move({ direction = "u" }))
+hl.bind(mainMod .. " + CTRL + Down",  hl.dsp.window.move({ direction = "d" }))
+```
+
+A three-finger horizontal swipe is also configured to switch workspaces:
+
+```lua config/keybinds.lua — gesture
+hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+```
+
+## Quick Reference
+
+<Accordion title="All Serpantinum Shell Keybinds at a Glance">
+
+| Keybind | Action |
+|---|---|
+| `Super + R` | Reload the shell |
+| `Super + H` | Toggle the guide panel |
+| `Super + D` | Toggle the app launcher |
+| `Super + M` | Toggle the music player |
+| `Super + B` | Toggle the system panel |
+| `Super + N` | Toggle the network panel |
+| `Super + V` | Toggle the volume panel |
+| `Super + C` | Toggle clipboard history |
+| `Super + W` | Toggle wallpaper picker |
+| `Super + S` | Toggle the calendar |
+| `Super + A` | Toggle bar auto-hide |
+| `Super + L` | Lock the screen |
+| `Super + 1–0` | Switch to workspace 1–10 |
+| `Super + Shift + 1–0` | Move window to workspace 1–10 |
+| `Print` | Region screenshot |
+| `Shift + Print` | Region screenshot with editor |
+| `Super + Print` | Full-screen screenshot |
+| `Super + Shift + Print` | Full-screen screenshot with editor |
+
+</Accordion>

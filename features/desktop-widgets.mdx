@@ -1,0 +1,114 @@
+---
+title: "Desktop Widgets — Draggable Clocks, Music & More"
+sidebarTitle: "Desktop Widgets"
+description: "Place draggable, rotatable desktop widgets — clocks, music cards, weather faces, and more — on your Wayland desktop using the built-in widget redactor."
+---
+
+Serpantinum's desktop widget system lets you place live, interactive widgets directly on the desktop layer. Widgets sit beneath your windows but above the wallpaper, are fully draggable, and support free rotation in 90-degree increments. Each widget is a QML *face* component that renders clock, music, weather, system usage, or image content. All widget state — position, size, rotation, and opacity — is persisted per monitor between sessions.
+
+## Opening the Widget Redactor
+
+The widget redactor is a full-screen editing canvas. While it is open, existing widgets are visible and selectable, and you can add new ones from the toolbar at the bottom of the screen. Launch it with the CLI:
+
+```bash
+serpantinum launch widgetredactor
+```
+
+Press `Escape` or click **Done** in the toolbar to exit the redactor and return to normal desktop mode.
+
+<Tip>
+  See the [CLI Reference — serpantinum](/cli/serpantinum) page for all available `launch` targets and flags.
+</Tip>
+
+## Available Widget Types
+
+Each widget type ships with one or more *variants*. The variant switcher appears in the selection chrome below a widget when it is selected in the redactor.
+
+<CardGroup cols={2}>
+  <Card title="Clock" icon="clock">
+    **Variants:** `ClockFaceAnalog`, `ClockFaceDigital`, `ClockFaceMinimal`
+
+    Renders the current local time. The analog variant draws hands on a round dial; the digital and minimal variants display numeric readouts.
+  </Card>
+  <Card title="Music" icon="music">
+    **Variants:** `MusicFace`, `MusicFaceRound`
+
+    Shows the active MPRIS track with album art, title, and artist. `MusicFaceRound` uses a circular cover-art crop.
+  </Card>
+  <Card title="Battery" icon="battery-half">
+    **Variant:** `BatteryFace`
+
+    Displays battery percentage and charge state pulled from UPower.
+  </Card>
+  <Card title="Weather" icon="cloud-sun">
+    **Variants:** `WeatherFaceCompact`, `WeatherFaceFull`, `WeatherFaceRound`
+
+    Shows current weather conditions from the configured location. The compact variant is a minimal icon-and-temperature pill; the full variant includes a forecast.
+  </Card>
+  <Card title="User" icon="user">
+    **Variant:** `UserFace`
+
+    Displays the system user's avatar image and username.
+  </Card>
+  <Card title="Visualizer" icon="waveform">
+    **Variants:** `VisualizerFace`, `VisualizerFaceContinuous`
+
+    A Cava-powered bar visualizer. The continuous variant renders a smooth waveform rather than discrete bars.
+  </Card>
+  <Card title="System Usage" icon="microchip">
+    **Variant:** `UsageFace`
+
+    Live CPU and memory usage readout.
+  </Card>
+  <Card title="Image" icon="image">
+    **Variants:** `ImageFaceRect`, `ImageFaceRound`, `ImageFaceRounded`
+
+    Displays a user-selected image file. The round and rounded variants apply a circular or corner-rounded clip mask.
+  </Card>
+</CardGroup>
+
+## Redactor Controls
+
+Once a widget is selected in the redactor, a chrome toolbar appears near the widget with the following controls:
+
+<Steps>
+  <Step title="Select a widget">
+    Click any widget on the canvas. A selection box with corner brackets appears, and the control chrome shows below (or above/beside the widget if it is near the bottom of the screen).
+  </Step>
+  <Step title="Resize">
+    Drag any of the eight resize handles around the selection border. Corner handles resize both dimensions simultaneously; edge handles resize only one axis. Aspect-locked faces (such as the analog clock) resize proportionally from any handle.
+  </Step>
+  <Step title="Rotate">
+    Click the rotate button in the chrome toolbar to spin the widget by **90 degrees**. Rotation cycles through 0°, 90°, 180°, and 270°.
+  </Step>
+  <Step title="Adjust opacity">
+    Use the opacity slider in the lower chrome row to set the widget's transparency from 0 % to 100 %.
+  </Step>
+  <Step title="Switch variant">
+    If the widget type has more than one variant, a segmented switch appears in the lower chrome row. Tap a segment to switch the face style immediately.
+  </Step>
+  <Step title="Delete">
+    Click the delete button (red × icon) to remove the widget from the current monitor's layout.
+  </Step>
+</Steps>
+
+## Auto-Shrink on Rotation
+
+When you rotate a widget by 90 degrees, the redactor checks whether the resulting bounding box would exceed the screen boundaries. If it does, the widget is automatically scaled down to the largest size that fits, centered on the widget's original midpoint. This prevents widgets from escaping the visible area after rotation.
+
+## Grid Snapping
+
+The toolbar at the bottom of the redactor includes a grid-toggle button. When the grid is enabled, a 20-pixel dot grid is drawn across the canvas and all drag, resize, and placement operations snap to that grid. Toggling the grid on also snaps all existing widgets to the nearest grid cell.
+
+## Per-Monitor Layouts
+
+Widget layouts are stored separately for each monitor. If you have multiple displays, you can open a separate redactor session per monitor. The settings UI inside the Guide popup (Display → Widgets tab) shows a per-monitor overview of active widgets and lets you open the redactor for a specific screen directly from the GUI.
+
+```bash
+# The QS_WIDGET_MONITOR environment variable targets a specific screen
+QS_WIDGET_MONITOR=DP-1 serpantinum launch widgetredactor
+```
+
+<Note>
+  The `ClockFaceMinimal` face is not listed in the `qmldir` faces index because it ships as part of the clock family — select it via the variant switcher after placing a clock widget.
+</Note>

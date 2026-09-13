@@ -1,0 +1,106 @@
+---
+title: Notification Settings — DND, Position & Sounds
+sidebarTitle: Notifications
+description: Configure Serpantinum's notification popup corner, do-not-disturb mode, sound alerts, and custom sound file selection through the notifications section.
+---
+
+The `"notifications"` section of `settings.json` controls how and where notification popups appear on screen. Serpantinum implements a full Wayland notification daemon that supports corner positioning, do-not-disturb suppression, and per-notification sound playback. All settings are hot-reloaded without restarting the shell.
+
+## Parameters
+
+<ParamField path="notifications.dnd" type="boolean" default="true">
+  Do Not Disturb mode. When `true`, incoming notifications are silently logged to the notification center but no popup is shown and no sound is played.
+</ParamField>
+
+<ParamField path="notifications.position" type="string" default="top right">
+  Screen corner or edge where notification popups stack.
+
+  **Accepted values:**
+
+  | Value | Position |
+  |---|---|
+  | `"top right"` | Top-right corner (default) |
+  | `"top left"` | Top-left corner |
+  | `"bottom right"` | Bottom-right corner |
+  | `"bottom left"` | Bottom-left corner |
+
+  The guide also exposes `"top center"` and `"bottom center"` positions and a free-form drag-to-place mode that stores the result as a percentage pair (`horizontalPosition` / `verticalPosition`). When a custom drag position is used, the `position` key is set to `"custom"`.
+</ParamField>
+
+<ParamField path="notifications.sound" type="boolean" default="true">
+  Play an audio alert when a new notification arrives. Requires `dnd` to be `false`; if DND is active, sounds are also suppressed.
+</ParamField>
+
+<ParamField path="notifications.soundFile" type="string" default="">
+  Absolute path to the sound file to play on incoming notifications. Leave empty to use the first available built-in sound.
+
+  Custom sounds can be dropped into `~/.local/state/serpantinum/sounds/notifications/` and will appear in the guide's sound selector alongside the built-in set.
+</ParamField>
+
+## Built-in notification sounds
+
+The following sounds are included with Serpantinum and can be selected from the guide or referenced by path:
+
+<CardGroup cols={2}>
+  <Card title="Botanica" icon="leaf">
+    Soft botanical chime (`.wav`)
+  </Card>
+  <Card title="Curious" icon="magnifying-glass">
+    Light curious tone (`.mp3`)
+  </Card>
+  <Card title="Progress" icon="arrow-right">
+    Ascending progress ping (`.wav`)
+  </Card>
+  <Card title="Sine" icon="wave-sine">
+    Clean sine-wave blip (`.wav`)
+  </Card>
+  <Card title="Sneak" icon="ghost">
+    Subtle sneak sound (`.mp3`)
+  </Card>
+  <Card title="WakeUp" icon="sun">
+    Wake-up chime (`.mp3`)
+  </Card>
+  <Card title="Wobbly" icon="circle-nodes">
+    Playful wobbly tone (`.mp3`)
+  </Card>
+</CardGroup>
+
+## Full example
+
+```json
+"notifications": {
+  "dnd": false,
+  "position": "top right",
+  "sound": true,
+  "soundFile": ""
+}
+```
+
+<Tabs>
+  <Tab title="DND off, custom sound">
+    ```json
+    "notifications": {
+      "dnd": false,
+      "position": "bottom right",
+      "sound": true,
+      "soundFile": "/home/user/.local/state/serpantinum/sounds/notifications/Sine.wav"
+    }
+    ```
+  </Tab>
+  <Tab title="DND on">
+    ```json
+    "notifications": {
+      "dnd": true,
+      "position": "top right",
+      "sound": false,
+      "soundFile": ""
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Setting `dnd` to `true` in the config file takes effect immediately. You can also toggle DND from the system panel or the notification center without editing the file.
+</Note>
+
+For the notification center UI, history view, and per-app controls, see [Notifications](/features/notifications).

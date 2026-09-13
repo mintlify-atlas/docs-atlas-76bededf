@@ -1,0 +1,109 @@
+---
+title: Compositor Integration Overview for Serpantinum
+sidebarTitle: Overview
+description: Learn how Serpantinum integrates with Hyprland, Niri, and Sway — covering autostart, keybinds, and where to find sample compositor configs.
+---
+
+Serpantinum is a Wayland desktop shell designed to work alongside a compositor rather than replace one. It runs as a daemon (`serpantinumd start`) and receives messages from your compositor's keybinds, so connecting the two requires an autostart entry and a set of keybindings that invoke `serpantinum` commands. Sample configurations for all three supported compositors ship inside the `compositors/` directory of the repository, and the automated installer on standard distributions handles copying them into place automatically.
+
+## Supported Compositors
+
+Serpantinum officially supports three compositors. Each has a dedicated integration page with the full set of sample configs extracted directly from the repository.
+
+<CardGroup cols={3}>
+  <Card title="Hyprland" icon="h" href="/compositors/hyprland">
+    Lua-based configuration with a full keybinds, autostart, env, and monitor setup.
+  </Card>
+  <Card title="Niri" icon="n" href="/compositors/niri">
+    KDL-based configuration with autostart, keybinds, layout, input, and env blocks.
+  </Card>
+  <Card title="Sway" icon="s" href="/compositors/sway">
+    Standard Sway config format with modular include files for every aspect of the setup.
+  </Card>
+</CardGroup>
+
+## How Integration Works
+
+Serpantinum's shell starts via its daemon and then listens for messages sent by `serpantinum msg` commands. Your compositor is responsible for two things:
+
+1. **Launching the daemon** on session start via an autostart mechanism.
+2. **Sending messages** to the running shell by binding `serpantinum msg toggle <panel>` and other `serpantinum` sub-commands to keys.
+
+The `serpantinum` CLI handles everything from toggling panels (`launcher`, `music`, `guide`, `network`, `wallpaper`, etc.) to controlling volume, brightness, and screenshots. All of these are invoked directly from compositor keybind configuration — no middleware required.
+
+## Required Autostart Services
+
+Beyond starting `serpantinumd` itself, two background services must be running for clipboard history and the audio equalizer to function correctly. Every sample config includes these three startup entries:
+
+<CodeGroup>
+```lua Hyprland (Lua)
+hl.on("hyprland.start", function()
+  hl.exec_cmd("wl-paste --type text --watch cliphist store")
+  hl.exec_cmd("wl-paste --type image --watch cliphist store")
+  hl.exec_cmd("systemctl --user enable --now easyeffects")
+  hl.exec_cmd("serpantinumd start")
+end)
+```
+
+```kdl Niri (KDL)
+spawn-at-startup "bash" "-c" "wl-paste --type text --watch cliphist store"
+spawn-at-startup "bash" "-c" "wl-paste --type image --watch cliphist store"
+spawn-at-startup "systemctl" "--user" "enable" "--now" "easyeffects"
+spawn-at-startup "serpantinumd" "start"
+```
+
+```bash Sway
+exec wl-paste --type text --watch cliphist store
+exec wl-paste --type image --watch cliphist store
+exec systemctl --user enable --now easyeffects
+exec serpantinumd start
+```
+</CodeGroup>
+
+<Info>
+  `cliphist` stores clipboard entries for both text and images. Without the `wl-paste` watchers running, the clipboard panel inside Serpantinum will have no history to display.
+</Info>
+
+## Sample Config Location
+
+The `compositors/` directory in the repository contains one subdirectory per compositor:
+
+```
+compositors/
+├── hyprland/
+│   ├── hyprland.lua
+│   └── config/
+│       ├── variables.lua
+│       ├── env.lua
+│       ├── autostart.lua
+│       ├── monitors.lua
+│       ├── settings.lua
+│       └── keybinds.lua
+├── niri/
+│   ├── config.kdl
+│   └── config/
+│       ├── env.kdl
+│       ├── input.kdl
+│       ├── output.kdl
+│       ├── layout.kdl
+│       ├── autostart.kdl
+│       └── keybinds.kdl
+└── sway/
+    ├── config
+    └── configDir/
+        ├── variables
+        ├── input
+        ├── output
+        ├── layout
+        ├── autostart
+        ├── window-rules
+        └── keybinds
+```
+
+Each directory is designed to be copied directly into your compositor's config location and then edited to match your hardware and preferences.
+
+## NixOS and Home Manager
+
+<Note>
+  On NixOS and Home Manager the automated installer does **not** run, so compositor configs are not placed automatically. You must manually copy and adapt the sample configs from the `compositors/` directory, or write equivalent options in your own NixOS/Home Manager configuration. See the [Nix Installation](/nix-installation) page for Home Manager and NixOS module details.
+</Note>

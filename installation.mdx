@@ -1,0 +1,164 @@
+---
+title: Install Serpantinum on Arch Linux
+sidebarTitle: Installation
+description: "Step-by-step guide to installing Serpantinum on Arch Linux and its derivatives using the automated installer script, with post-install launch instructions."
+---
+
+Serpantinum ships an automated installation script for Arch Linux and its derivatives. The script detects your installed compositor, bootstraps any missing installer dependencies (including an AUR helper if needed), installs every required package via `pacman` or the AUR, downloads the Iosevka Nerd Font, deploys the shell source files, and configures the `serpantinumd` service — all in a single run.
+
+<Warning>
+  The automated installer only supports **Arch Linux and its derivatives**. Running it on any other distribution will cause the installer to exit with an error. For NixOS, see the [NixOS Setup](/nix-installation) guide instead.
+</Warning>
+
+## Supported Distributions
+
+The following Arch-based distributions are recognised by the installer:
+
+<Accordion title="Full list of supported distributions">
+
+| Distribution | Distribution |
+|---|---|
+| arch | endeavouros |
+| manjaro | cachyos |
+| garuda | arcolinux |
+| archcraft | artix |
+| blackarch | rebornos |
+| mabox | blendos |
+| parch | parchlinux |
+| biglinux | archlabs |
+| archman | alci |
+| bluestar | archbang |
+| archex | archstrike |
+| athena / athenaos | chimeraos |
+| ctlos | crystal |
+| hefftorlinux | instantos |
+| nyarch | obarun |
+| hyperbola | parabola |
+| salientos | snal |
+| steamos / holo | stormos |
+| tearch | xerolinux |
+| axyl | omarchy |
+
+</Accordion>
+
+## System Requirements
+
+Before running the installer, make sure your system has a working internet connection and a supported Wayland compositor (Hyprland, Niri, or Sway) already installed. The script will install all other dependencies automatically.
+
+## Automated Installation
+
+Run the one-line command below to download and execute the installer:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/ilyamiro/serpantinum/master/install/install.sh)"
+```
+
+The installer will:
+
+1. Verify you are running a supported Arch-based distribution and that you are **not** root.
+2. Enable the `[multilib]` repository in `/etc/pacman.conf` if it is not already active.
+3. Install bootstrap tools (`fzf`, `jq`, `curl`, `git`, `pciutils`, `unzip`, `fontconfig`, `base-devel`) if any are missing.
+4. Install `yay` from the AUR if neither `yay` nor `paru` is present.
+5. Run a full system upgrade (`pacman -Syyu`).
+6. Install all required packages (listed below) via `pacman` or the AUR helper.
+7. Download and install **Iosevka Nerd Font** to `~/.local/share/fonts/IosevkaNerdFont`.
+8. Deploy the Serpantinum source files and initialise your configuration at `$XDG_CONFIG_HOME/serpantinum/settings.json`.
+9. Configure the `serpantinumd` system service.
+
+## Required Packages
+
+The installer ensures every package in the following list is present on your system:
+
+<Accordion title="Full required package list">
+
+```
+kitty            cava             zbar             pavucontrol      alsa-utils
+wl-clipboard     fd               qt6-multimedia   qt6-5compat      ripgrep
+cliphist         jq               socat            inotify-tools    pamixer
+brightnessctl    ddcutil          acpi             iw               bluez
+bluez-utils      libnotify        networkmanager   lm_sensors       bc
+matugen          pipewire         wireplumber      pipewire-pulse   pipewire-alsa
+libpulse         python           imagemagick      wget             file
+git              psmisc           ffmpeg           fastfetch        quickshell
+unzip            python-websockets  qt6-websockets grim             playerctl
+satty            xdg-desktop-portal-gtk  slurp     wmctrl           power-profiles-daemon
+easyeffects      nautilus         qt5-wayland      qt5-quickcontrols  qt5-quickcontrols2
+qt5-graphicaleffects  qt6-wayland  qt5ct           qt6ct            gpu-screen-recorder
+wf-recorder      adw-gtk-theme    wl-gammarelay-rs
+```
+
+</Accordion>
+
+In addition to the packages above, the installer will also install the package for your chosen compositor if it is not already present.
+
+## Launching Serpantinum
+
+After installation completes, start the shell with:
+
+```bash
+serpantinumd start
+```
+
+This starts the `serpantinumd` supervisor daemon, which in turn launches the Quickshell QML process that renders the bar and all other UI elements. To check whether the daemon is running:
+
+```bash
+serpantinumd status
+```
+
+To stop the shell:
+
+```bash
+serpantinumd stop
+```
+
+## Updating
+
+When a new version is available, Serpantinum will show a notification. To update, simply run the installer script again:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/ilyamiro/serpantinum/master/install/install.sh)"
+```
+
+When the interactive menu appears, select **update**. The script will pull the latest source, reinstall any changed dependencies, and redeploy the shell files while preserving your configuration.
+
+## Required Autostart Entries
+
+For the clipboard manager and the audio equalizer to function correctly, you must add the following commands to your compositor's autostart configuration.
+
+<Tabs>
+  <Tab title="Hyprland">
+    Add these entries to your Hyprland Lua config (or `hyprland.conf` exec-once directives):
+
+    ```lua
+    hl.on("hyprland.start", function()
+      hl.exec_cmd("wl-paste --type text --watch cliphist store")
+      hl.exec_cmd("wl-paste --type image --watch cliphist store")
+      hl.exec_cmd("systemctl --user enable --now easyeffects")
+    end)
+    ```
+  </Tab>
+  <Tab title="Niri / Sway">
+    Add equivalent `exec-once` or `exec` directives in your compositor config:
+
+    ```bash
+    wl-paste --type text --watch cliphist store
+    wl-paste --type image --watch cliphist store
+    systemctl --user enable --now easyeffects
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  Sample compositor configuration files — including autostart entries and recommended keybindings — are available in the [Compositors Overview](/compositors/overview) section.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration Overview" icon="gear" href="/configuration/overview">
+    Learn how to customise the bar, theme, notifications, idle timeouts, and display settings.
+  </Card>
+  <Card title="Compositor Setup" icon="monitor" href="/compositors/overview">
+    Review sample configs and autostart entries for Hyprland, Niri, and Sway.
+  </Card>
+</CardGroup>

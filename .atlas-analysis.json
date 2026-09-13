@@ -1,0 +1,112 @@
+{
+  "projectType": "frontend",
+  "projectName": "Serpantinum",
+  "projectDescription": "A feature-rich, highly customizable shell for Wayland compositors (Hyprland, Niri, Sway) built with Quickshell and QML.",
+  "theme": "willow",
+  "primaryColor": "#8c8c8c",
+  "lightColor": "#252525",
+  "darkColor": "#cecece",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "nix-installation"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/overview",
+              "configuration/bar",
+              "configuration/theme",
+              "configuration/notifications",
+              "configuration/idle",
+              "configuration/display"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/bar-widgets",
+              "features/desktop-widgets",
+              "features/wallpaper",
+              "features/media",
+              "features/notifications",
+              "features/system-panel"
+            ]
+          },
+          {
+            "group": "Compositor Integration",
+            "pages": [
+              "compositors/overview",
+              "compositors/hyprland",
+              "compositors/niri",
+              "compositors/sway"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "cli/serpantinum",
+              "cli/serpantinumd"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Modular bar with configurable left/center/right module sections",
+    "Draggable desktop widgets (clock, music, battery, weather, visualizer, user)",
+    "80+ built-in color themes plus Material You (Matugen) wallpaper-based color generation",
+    "System panel with clipboard manager, network/bluetooth panel, volume controls",
+    "Idle management with dim, DPMS, lock, and suspend actions",
+    "App launcher with usage-ranked search",
+    "Notification center with per-notification actions and sound support",
+    "Digital wellbeing / focus mode with app-usage tracking",
+    "NixOS and Home Manager module support",
+    "Automated Arch Linux installer",
+    "SDDM Material You login theme",
+    "Multi-compositor support: Hyprland, Niri, Sway",
+    "Full i18n support (10+ languages)"
+  ],
+  "publicApiSurface": [
+    "serpantinum launch start",
+    "serpantinum launch widgetredactor",
+    "serpantinum msg workspace <num> [move]",
+    "serpantinum msg open <target> [subtarget]",
+    "serpantinum msg toggle <target>",
+    "serpantinum msg close",
+    "serpantinum ipc ...",
+    "serpantinum kill",
+    "serpantinum exit",
+    "serpantinum lock",
+    "serpantinum volume",
+    "serpantinum reload",
+    "serpantinum weather",
+    "serpantinum location",
+    "serpantinum screenshot",
+    "serpantinum brightness",
+    "serpantinum current_focus",
+    "serpantinum monitors_detect",
+    "serpantinum location_manual",
+    "serpantinum blue_light_filter",
+    "serpantinumd start",
+    "serpantinumd stop",
+    "serpantinumd status",
+    "settings.json: general (language, avatarPath, muteSfx, weatherInterval, weatherUnit)",
+    "settings.json: bar (position, width, opacity, style, autohide, modules)",
+    "settings.json: theme (fontFamily, borderRadius, activePreset, matugen, colors)",
+    "settings.json: idle (enabled, actions: dim/dpms/lock/suspend)",
+    "settings.json: notifications (dnd, position, sound, soundFile)",
+    "settings.json: display (monitors: enabled, scale)",
+    "NixOS module: programs.serpantinum.enable",
+    "Home Manager module: programs.serpantinum.{enable, systemd.enable, settings}"
+  ]
+}

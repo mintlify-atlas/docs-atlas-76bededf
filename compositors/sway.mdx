@@ -1,0 +1,218 @@
+---
+title: Sway Integration Guide for Serpantinum
+sidebarTitle: Sway
+description: Integrate Serpantinum with Sway using the provided modular config — covering autostart, keybindings, layout, input, and output configuration files.
+---
+
+Serpantinum provides a modular Sway configuration located at `compositors/sway/` in the repository. The root `config` file includes seven sub-files from `configDir/`: `variables`, `input`, `output`, `layout`, `autostart`, `window-rules`, and `keybinds`. This matches the standard Sway config format, so you can copy the directory to `~/.config/sway/` and immediately launch a fully functional session with Serpantinum wired up to all your keys.
+
+<Tip>
+  Copy the entire `compositors/sway/` directory to `~/.config/sway/`, then edit `configDir/input` for your keyboard layout and `configDir/output` for your monitor setup before first launch.
+</Tip>
+
+## Entry Point
+
+The root `config` file assembles the full configuration from separate include files:
+
+```bash config
+include config/variables
+include config/input
+include config/output
+include config/layout
+include config/autostart
+include config/window-rules
+include config/keybinds
+```
+
+## Autostart
+
+`configDir/autostart` launches `serpantinumd` and the two background services using Sway's `exec` directive. All four lines run once at session start:
+
+```bash configDir/autostart
+exec wl-paste --type text --watch cliphist store
+exec wl-paste --type image --watch cliphist store
+exec systemctl --user enable --now easyeffects
+exec serpantinumd start
+```
+
+<Warning>
+  All four entries must be present. The `cliphist` watchers provide clipboard history to the shell's clipboard panel. Without `easyeffects`, the audio equalizer in Serpantinum's system panel will not function.
+</Warning>
+
+## Input Configuration
+
+`configDir/input` configures both the keyboard layout and touchpad behaviour using Sway's `input` block syntax:
+
+```bash configDir/input
+input "type:keyboard" {
+    xkb_layout "us"
+    xkb_options "grp:alt_shift_toggle"
+}
+
+input "type:touchpad" {
+    tap enabled
+    natural_scroll enabled
+    accel_profile "flat"
+    click_method "clickfinger"
+}
+```
+
+<Info>
+  Replace `"us"` with your locale code (e.g. `"gb"`, `"de"`, `"fr"`) and adjust `xkb_options` for your preferred layout-switching shortcut. The `grp:alt_shift_toggle` option switches input language with Alt+Shift.
+</Info>
+
+## Output Configuration
+
+`configDir/output` applies a catch-all rule to every connected display. Adjust this file to set per-monitor resolutions, positions, or scale factors:
+
+```bash configDir/output
+output * {
+    resolution preferred
+    position 0 0
+    scale 1.0
+}
+```
+
+## Layout Configuration
+
+`configDir/layout` sets tiling gaps and disables window borders, deferring all visual chrome to Serpantinum's bar:
+
+```bash configDir/layout
+gaps inner 4
+gaps outer 0
+default_border none
+default_floating_border none
+smart_borders off
+hide_edge_borders none
+```
+
+## Key Bindings
+
+`configDir/keybinds` uses the standard `bindsym` syntax. `$mod` resolves to the value of `$mod` set in `configDir/variables` (Super by default).
+
+### Serpantinum Shell Commands
+
+These bindings toggle shell panels, reload the shell, and switch workspaces via `serpantinum msg`:
+
+```bash configDir/keybinds — shell binds
+bindsym $mod+R exec serpantinum reload
+bindsym $mod+C exec serpantinum msg toggle clipboard
+bindsym $mod+D exec serpantinum msg toggle launcher
+bindsym $mod+M exec serpantinum msg toggle music
+bindsym $mod+B exec serpantinum msg toggle system
+bindsym $mod+W exec serpantinum msg toggle wallpaper
+bindsym $mod+S exec serpantinum msg toggle calendar
+bindsym $mod+N exec serpantinum msg toggle network
+bindsym $mod+V exec serpantinum msg toggle volume
+bindsym $mod+H exec serpantinum msg toggle guide
+bindsym $mod+A exec serpantinum msg toggle autohide
+```
+
+Workspace switching routes through the shell daemon:
+
+```bash configDir/keybinds — workspace binds
+bindsym $mod+1 exec serpantinum msg workspace 1
+bindsym $mod+2 exec serpantinum msg workspace 2
+bindsym $mod+3 exec serpantinum msg workspace 3
+bindsym $mod+4 exec serpantinum msg workspace 4
+bindsym $mod+5 exec serpantinum msg workspace 5
+bindsym $mod+6 exec serpantinum msg workspace 6
+bindsym $mod+7 exec serpantinum msg workspace 7
+bindsym $mod+8 exec serpantinum msg workspace 8
+bindsym $mod+9 exec serpantinum msg workspace 9
+bindsym $mod+0 exec serpantinum msg workspace 10
+
+bindsym $mod+Shift+1 exec serpantinum msg workspace 1 move
+bindsym $mod+Shift+2 exec serpantinum msg workspace 2 move
+bindsym $mod+Shift+3 exec serpantinum msg workspace 3 move
+bindsym $mod+Shift+4 exec serpantinum msg workspace 4 move
+bindsym $mod+Shift+5 exec serpantinum msg workspace 5 move
+bindsym $mod+Shift+6 exec serpantinum msg workspace 6 move
+bindsym $mod+Shift+7 exec serpantinum msg workspace 7 move
+bindsym $mod+Shift+8 exec serpantinum msg workspace 8 move
+bindsym $mod+Shift+9 exec serpantinum msg workspace 9 move
+bindsym $mod+Shift+0 exec serpantinum msg workspace 10 move
+```
+
+### Screenshot, Lock, and Brightness
+
+```bash configDir/keybinds — system binds
+bindsym XF86MonBrightnessDown exec serpantinum brightness lower
+bindsym XF86MonBrightnessUp   exec serpantinum brightness raise
+
+bindsym Print              exec serpantinum screenshot
+bindsym Shift+Print        exec serpantinum screenshot --edit
+bindsym $mod+Print         exec serpantinum screenshot --full
+bindsym $mod+Shift+Print   exec serpantinum screenshot --full --edit
+
+bindsym XF86PowerOff exec serpantinum lock
+bindsym $mod+L       exec serpantinum lock
+```
+
+### Volume and Media
+
+```bash configDir/keybinds — audio binds
+bindsym XF86AudioMicMute     exec serpantinum volume mic-toggle
+bindsym XF86AudioMute        exec serpantinum volume mute-toggle
+bindsym XF86AudioLowerVolume exec serpantinum volume lower
+bindsym XF86AudioRaiseVolume exec serpantinum volume raise
+
+bindsym $mod+space   exec playerctl play-pause
+bindsym XF86AudioPause exec playerctl play-pause
+bindsym XF86AudioPlay  exec playerctl play-pause
+bindsym XF86AudioPrev  exec playerctl previous
+bindsym XF86AudioNext  exec playerctl next
+```
+
+### Window Management
+
+```bash configDir/keybinds — window management
+bindsym $mod+Return    exec $terminal
+bindsym $mod+F         exec firefox
+bindsym $mod+E         exec nautilus
+bindsym $mod+BackSpace scratchpad show
+bindsym $mod+Q         kill
+bindsym $mod+Shift+F   floating toggle
+
+bindsym $mod+Left  focus left
+bindsym $mod+Right focus right
+bindsym $mod+Up    workspace prev
+bindsym $mod+Down  workspace next
+
+bindsym $mod+Ctrl+Left  move left
+bindsym $mod+Ctrl+Right move right
+bindsym $mod+Ctrl+Up    move container to workspace prev; workspace prev
+bindsym $mod+Ctrl+Down  move container to workspace next; workspace next
+
+bindsym $mod+Shift+Left  resize shrink width 5 ppt
+bindsym $mod+Shift+Right resize grow width 5 ppt
+bindsym $mod+Shift+Up    resize shrink height 5 ppt
+bindsym $mod+Shift+Down  resize grow height 5 ppt
+```
+
+## Quick Reference
+
+<Accordion title="All Serpantinum Shell Keybinds at a Glance">
+
+| Keybind | Action |
+|---|---|
+| `$mod + R` | Reload the shell |
+| `$mod + H` | Toggle the guide panel |
+| `$mod + D` | Toggle the app launcher |
+| `$mod + M` | Toggle the music player |
+| `$mod + B` | Toggle the system panel |
+| `$mod + N` | Toggle the network panel |
+| `$mod + V` | Toggle the volume panel |
+| `$mod + C` | Toggle clipboard history |
+| `$mod + W` | Toggle wallpaper picker |
+| `$mod + S` | Toggle the calendar |
+| `$mod + A` | Toggle bar auto-hide |
+| `$mod + L` | Lock the screen |
+| `$mod + 1–0` | Switch to workspace 1–10 |
+| `$mod + Shift + 1–0` | Move window to workspace 1–10 |
+| `Print` | Region screenshot |
+| `Shift + Print` | Region screenshot with editor |
+| `$mod + Print` | Full-screen screenshot |
+| `$mod + Shift + Print` | Full-screen screenshot with editor |
+
+</Accordion>

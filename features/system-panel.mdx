@@ -1,0 +1,148 @@
+---
+title: "System Panel — Clipboard, Network & Controls"
+sidebarTitle: "System Panel"
+description: "The Serpantinum system panel unifies clipboard history, Wi-Fi and Bluetooth management, volume, power controls, and a polkit agent in one sliding overlay."
+---
+
+The system panel (`syspanel`) is Serpantinum's central control hub. It slides in from the bar edge and packs several sub-panels — clipboard manager, network and Bluetooth controls, volume, and power-management actions — into a single cohesive overlay. Complementary features like the app launcher, quick-action floating dock, and screenshot overlay are tightly integrated with the system panel and share the same IPC command surface.
+
+## Opening the System Panel
+
+The system panel opens automatically when you click certain bar modules (the `wifi` widget, the `vol` widget, etc.), or you can invoke it directly:
+
+```bash
+serpantinum msg open syspanel
+```
+
+The panel slides in with an animated intro sequence. Press `Escape` or click outside the panel to dismiss it.
+
+## Clipboard Manager
+
+The clipboard manager is powered by **cliphist** and **wl-clipboard**. It stores a rolling history of copied items and displays them as a searchable list inside the panel. Click any entry to paste it back to the clipboard.
+
+```bash
+# Open clipboard directly (standalone window)
+serpantinum msg toggle clipboard
+```
+
+<Info>
+  Cliphist must be running as a daemon for clipboard history to be populated. It is started automatically in the Serpantinum autostart sequence.
+</Info>
+
+## Network Panel
+
+The network panel provides Wi-Fi scanning, connection management, and Bluetooth device listing in two tabs.
+
+```bash
+# Open network panel to the Wi-Fi tab
+serpantinum msg open network wifi
+
+# Open network panel to the Bluetooth tab
+serpantinum msg open network bluetooth
+```
+
+<CardGroup cols={2}>
+  <Card title="Wi-Fi" icon="wifi">
+    Scans for available access points via NetworkManager, shows signal strength, and lets you connect, disconnect, or forget networks with a click.
+  </Card>
+  <Card title="Bluetooth" icon="bluetooth">
+    Lists paired and discovered Bluetooth devices using the Quickshell Bluetooth backend. Tap a device to connect or disconnect.
+  </Card>
+</CardGroup>
+
+## Volume Control
+
+The volume section of the system panel mirrors the standalone volume popup and provides sliders for output level, input (microphone) level, and per-application stream volumes via PipeWire.
+
+```bash
+# Open the standalone volume popup
+serpantinum msg open volume
+
+# Quick volume adjustment shortcut
+serpantinum volume
+```
+
+## System Power Controls
+
+The system panel includes a row of power-management actions:
+
+| Action | Command |
+|--------|---------|
+| Power off | `src/scripts/system/poweroff.sh` |
+| Reboot | `src/scripts/system/reboot.sh` |
+| Suspend | `src/scripts/system/suspend.sh` |
+| Hibernate | `src/scripts/system/hibernate.sh` (guarded by `can_hibernate.sh`) |
+| Log out | `src/scripts/system/exit.sh` |
+| Lock screen | `src/scripts/lock.sh` |
+
+Hibernate is shown only when the system confirms it is supported. Desktop machines (detected via UPower) hide the battery row entirely.
+
+## Polkit Agent
+
+The system panel embeds a **polkit agent** for privilege-escalation prompts. When a system action (such as connecting to a VPN or installing a package) requests elevated privileges, the polkit dialog appears inside the Serpantinum overlay rather than a separate GTK or Qt dialog window.
+
+## Quick Actions Floating Panel
+
+The quick-actions floating panel is a small dock-like overlay that can be pinned to any screen edge. It provides one-click access to frequently used toggles:
+
+<Accordion title="Dock / Undock Toggle">
+  Pins or unpins the quick-actions panel to the screen edge. When unpinned, the panel auto-hides until the cursor approaches the edge.
+</Accordion>
+
+<Accordion title="Draw Mode">
+  Activates a transparent drawing overlay where you can annotate the screen with freehand strokes. Useful for presentations or screen recordings.
+</Accordion>
+
+<Accordion title="System Usage">
+  Expands an inline CPU and memory usage readout without opening the full system panel.
+</Accordion>
+
+<Accordion title="Timer">
+  A simple countdown timer accessible from the quick-actions dock.
+</Accordion>
+
+## App Launcher
+
+The app launcher provides fuzzy search across all installed applications discovered via `DesktopEntries`. Results are ranked by usage frequency — applications you launch more often float to the top.
+
+```bash
+serpantinum msg toggle launcher
+```
+
+Type to filter results. Press `Enter` to launch the highlighted application, or click any result directly. The launcher closes automatically after launching an app.
+
+<Info>
+  The launcher uses the Quickshell `DesktopEntries` API to discover applications from the system's XDG application directories. It re-scans entries whenever `DesktopEntries.applications` reports changes.
+</Info>
+
+## Screenshot Overlay
+
+The screenshot overlay provides a region-select capture tool with optional annotation support via **satty**.
+
+```bash
+serpantinum screenshot
+```
+
+<Steps>
+  <Step title="Region select">
+    A crosshair cursor appears. Click and drag to define the capture region. The overlay freezes the screen content for accurate selection.
+  </Step>
+  <Step title="Capture">
+    Release the mouse button to capture the selection. A screenshot notification appears with a **Copy** action.
+  </Step>
+  <Step title="Annotate (optional)">
+    Pass `--edit` to open the capture in satty for annotations before saving.
+  </Step>
+</Steps>
+
+Additional screenshot flags:
+
+```bash
+serpantinum screenshot --full          # Full-screen capture
+serpantinum screenshot --edit          # Open in satty after capture
+serpantinum screenshot --monitor DP-1  # Target a specific monitor
+```
+
+<Tip>
+  For configuration keys that affect system panel behavior — such as clipboard expand state and display settings — see the [Configuration Overview](/configuration/overview) page.
+</Tip>

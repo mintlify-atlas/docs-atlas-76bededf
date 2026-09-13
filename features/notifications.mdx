@@ -1,0 +1,128 @@
+---
+title: "Notification Center — Actions, Sounds & DND"
+sidebarTitle: "Notifications"
+description: "Serpantinum's notification center delivers popup toasts, persistent history, per-notification action buttons, sound playback, and a Do Not Disturb toggle."
+---
+
+Serpantinum implements a full desktop notification stack on top of the Quickshell `NotificationServer`. Incoming notifications appear as popup toasts at the configured screen corner and are simultaneously stored in a scrollable history panel. Each notification card can carry action buttons, and the system can play a sound on arrival. A Do Not Disturb mode suppresses new popups without discarding them from history.
+
+## Opening the Notification Center
+
+```bash
+serpantinum msg open notifications
+```
+
+The notification center panel slides in from the bar. It shows a chronological list of recent notifications grouped by application, with timestamps and body text.
+
+## Do Not Disturb
+
+DND suppresses all incoming popup toasts. Notifications are still received and stored in history while DND is active, so nothing is lost.
+
+```bash
+# Toggle DND on or off
+serpantinum msg toggle notifications
+```
+
+DND can also be toggled from the **system panel** quick-controls row without opening the terminal. The `info` bar module displays a DND indicator icon when the mode is active.
+
+The default DND state is controlled by the `notifications.dnd` setting:
+
+```json settings.json
+{
+  "notifications": {
+    "dnd": true
+  }
+}
+```
+
+## Popup Positioning
+
+Notification popups appear at one of four screen corners. Configure the position with `notifications.position`:
+
+<Tabs>
+  <Tab title="Top Right (default)">
+    ```json settings.json
+    {
+      "notifications": {
+        "position": "top right"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Top Left">
+    ```json settings.json
+    {
+      "notifications": {
+        "position": "top left"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Bottom Right">
+    ```json settings.json
+    {
+      "notifications": {
+        "position": "bottom right"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Bottom Left">
+    ```json settings.json
+    {
+      "notifications": {
+        "position": "bottom left"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Notification Sound
+
+When `notifications.sound` is `true`, a sound effect plays each time a new notification popup appears. You can supply a custom audio file:
+
+```json settings.json
+{
+  "notifications": {
+    "sound": true,
+    "soundFile": "/path/to/custom-sound.wav"
+  }
+}
+```
+
+Leave `soundFile` empty to use the built-in default sound. The sound picker in the Guide popup lets you browse and preview audio files from the UI.
+
+## Notification Types
+
+Serpantinum ships specialized card renderers for certain notification categories alongside a generic default renderer:
+
+<Accordion title="Default">
+  The standard notification card. Renders the application icon, summary, body text, and any action buttons provided by the sending application. Clicking the card invokes the `default` action if available.
+</Accordion>
+
+<Accordion title="Screenshot">
+  Triggered when a screenshot is taken via `serpantinum screenshot`. The card shows a thumbnail of the captured image, a **Copy** action button that places the image on the clipboard, and opens the screenshot folder in the file manager when clicked.
+</Accordion>
+
+<Accordion title="Update">
+  Appears when a new Serpantinum version is detected. The card includes a link to the release notes and a one-click update action. Update notifications are generated at startup if the installed version differs from the latest.
+</Accordion>
+
+<Accordion title="Weather">
+  Periodically surfaced weather condition cards based on the `general.weatherInterval` setting. These use the same weather data source as the `weather` bar module.
+</Accordion>
+
+## Action Buttons
+
+Any notification that includes MPRIS-style actions in its D-Bus payload will render those actions as tappable buttons inside the notification card. Clicking a button invokes the action identifier through `NotificationServer` and optionally dismisses the popup.
+
+## History & Grouping
+
+All notifications received during a session are stored in the `NotificationManager` history model. The notification center groups history entries by application using a heuristic desktop-entry lookup, so notifications from the same app are visually clustered.
+
+Opening the system panel (`serpantinum msg open notifications`) clears the active popup stack — all live toasts are dismissed so the history panel has room to display.
+
+<Tip>
+  For the full list of notification configuration keys — position, DND defaults, sound settings — see the [Notifications Configuration](/configuration/notifications) reference page.
+</Tip>

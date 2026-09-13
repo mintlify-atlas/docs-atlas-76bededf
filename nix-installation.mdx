@@ -1,0 +1,253 @@
+---
+title: Install Serpantinum on NixOS with Flakes
+sidebarTitle: NixOS Setup
+description: "Add the Serpantinum flake, enable the NixOS system module, and configure your shell through Home Manager with typed settings options and a systemd user service."
+---
+
+Serpantinum provides full Nix flake support. The flake exposes a NixOS module that configures system-level prerequisites (PipeWire, NetworkManager, Bluetooth, fonts, and more) and a Home Manager module that manages user configuration, settings merging, and an optional `systemd --user` service for `serpantinumd`. Both modules use the same `programs.serpantinum` option namespace, so your configuration is self-contained and reproducible.
+
+<Note>
+  The automated installer that handles compositor integration is only available on Arch Linux. On NixOS you must manually add compositor autostart entries and keybindings. See [Compositor Setup](/compositors/overview) for ready-made sample configs.
+</Note>
+
+## Setup Steps
+
+<Steps>
+
+### Add the Flake Input
+
+Add Serpantinum to your `flake.nix` and pass it through as a `specialArg` so both the NixOS and Home Manager modules can access the flake's packages:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    serpantinum.url = "github:ilyamiro/serpantinum";
+  };
+
+  outputs = { self, nixpkgs, serpantinum, ... }: {
+    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = { inherit serpantinum; };
+      modules = [
+        ./configuration.nix
+        serpantinum.nixosModules.default
+      ];
+    };
+  };
+}
+```
+
+### Enable the NixOS Module
+
+In your `configuration.nix`, enable the NixOS module. This single option configures all system-level prerequisites needed by Serpantinum:
+
+```nix
+{
+  programs.serpantinum.enable = true;
+}
+```
+
+<Accordion title="What the NixOS module enables">
+
+The NixOS module (`programs.serpantinum.enable = true`) sets the following options (all with `mkDefault`, so you can override any of them):
+
+| Option | Value |
+|---|---|
+| `networking.networkmanager.enable` | `true` |
+| `hardware.bluetooth.enable` | `true` |
+| `hardware.i2c.enable` | `true` |
+| `services.power-profiles-daemon.enable` | `true` |
+| `security.rtkit.enable` | `true` |
+| `services.pipewire.enable` | `true` |
+| `services.pipewire.alsa.enable` | `true` |
+| `services.pipewire.alsa.support32Bit` | `true` |
+| `services.pipewire.pulse.enable` | `true` |
+| `fonts.packages` | `[ pkgs.nerd-fonts.iosevka ]` |
+
+</Accordion>
+
+### Configure Home Manager
+
+Import the Home Manager module and configure `programs.serpantinum`. All values under `settings` are deep-merged with the bundled `config/serpantinum/settings.json`, so you only need to specify what you want to change:
+
+```nix
+{ serpantinum, ... }:
+
+{
+  imports = [
+    serpantinum.homeManagerModules.default
+  ];
+
+  programs.serpantinum = {
+    enable = true;
+    systemd.enable = true;
+
+    settings = {
+      wallpaperDir = "/home/username/Pictures/Wallpapers";
+
+      general = {
+        language = "en";
+        weatherUnit = "metric";
+        weatherInterval = 30;
+      };
+
+      bar = {
+        position = "top";
+        style = "solid";
+        width = 40;
+        workspaceCount = 10;
+        modules = {
+          left = [ "workspaces" ];
+          center = [ "time" ];
+          right = [ "tray" [ "kb" "wifi" "bt" "vol" "bat" ] ];
+        };
+      };
+
+      theme = {
+        fontFamily = "Adwaita Mono";
+        borderRadius = 12;
+        matugen = true;
+      };
+
+      notifications = {
+        dnd = false;
+        position = "top right";
+        sound = true;
+      };
+    };
+  };
+}
+```
+
+When `systemd.enable = true`, the module creates a `systemd --user` service named `serpantinum` that starts `serpantinumd start`, restarts on failure, and is tied to `graphical-session.target` by default. The service is automatically restarted when the generated settings file changes.
+
+<Accordion title="Home Manager module options reference">
+
+**`programs.serpantinum.enable`** — Enable the Serpantinum Home Manager module.
+
+**`programs.serpantinum.package`** — Override the Serpantinum package. Defaults to `serpantinum.packages.<system>.default`.
+
+**`programs.serpantinum.settings`** — Attribute set merged on top of the bundled defaults and written to `$XDG_CONFIG_HOME/serpantinum/settings.json`. Typed sub-options include:
+
+| Path | Type | Description |
+|---|---|---|
+| `wallpaperDir` | `str` | Directory Serpantinum reads wallpapers from |
+| `general.language` | `str` | UI language code |
+| `general.weatherUnit` | `"metric"` \| `"imperial"` | Units for weather display |
+| `general.weatherInterval` | `int` | Minutes between weather refreshes |
+| `general.muteSfx` | `bool` | Mute UI sound effects |
+| `general.sfxVolume` | `0–100` | UI sound effect volume |
+| `bar.position` | `"top"` \| `"bottom"` \| `"left"` \| `"right"` | Screen edge the bar docks to |
+| `bar.style` | `"solid"` \| `"fill"` \| `"modular"` | Bar visual style |
+| `bar.width` | `int` | Bar thickness in pixels |
+| `bar.opacity` | `0–100` | Bar background opacity |
+| `bar.autohide` | `bool` | Auto-hide the bar when inactive |
+| `bar.autohideTimeout` | `int` | Milliseconds before autohide triggers |
+| `bar.workspaceCount` | `int` | Number of workspace indicators |
+| `bar.modules.left/center/right` | `list` | Ordered module lists per section |
+| `theme.fontFamily` | `str` | UI font family |
+| `theme.borderRadius` | `int` | Corner radius in pixels |
+| `theme.activePreset` | `str` | Name of the active theme preset |
+| `theme.matugen` | `bool` | Generate palette from current wallpaper |
+| `notifications.dnd` | `bool` | Do Not Disturb mode |
+| `notifications.position` | `str` | Corner where notifications appear |
+| `notifications.sound` | `bool` | Play sound on notifications |
+| `idle.enabled` | `bool` | Master switch for idle management |
+| `idle.actions.dim.timeout` | `int` | Seconds before dimming |
+| `idle.actions.dpms.timeout` | `int` | Seconds before display off |
+| `idle.actions.lock.timeout` | `int` | Seconds before lock screen |
+| `idle.actions.suspend.timeout` | `int` | Seconds before suspend |
+
+</Accordion>
+
+**`programs.serpantinum.systemd.enable`** — Whether to manage `serpantinumd` as a `systemd --user` service. Defaults to `true` on Linux.
+
+**`programs.serpantinum.systemd.target`** — The systemd target the service is tied to. Defaults to `"graphical-session.target"`.
+
+**`programs.serpantinum.systemd.environment`** — Extra environment variables passed to the `serpantinumd` unit, for example `{ QT_QPA_PLATFORM = "wayland"; }`.
+
+### Rebuild and Switch
+
+Apply your configuration:
+
+```bash
+sudo nixos-rebuild switch --flake .
+```
+
+Once the rebuild completes, the `serpantinum` systemd user service will start automatically with your graphical session (if `systemd.enable = true`). You can also start it manually:
+
+```bash
+serpantinumd start
+```
+
+</Steps>
+
+## Updating
+
+Update the Serpantinum flake input and rebuild:
+
+```bash
+nix flake update serpantinum
+sudo nixos-rebuild switch --flake .
+```
+
+This pulls the latest `flake.lock` entry for Serpantinum, rebuilds the package, and restarts the `serpantinum` systemd service automatically because the generated settings file path is listed in `X-Restart-Triggers`.
+
+## Direct Package Install (Without the Module)
+
+If you prefer to install Serpantinum as a plain system package without enabling the NixOS module, add it to `environment.systemPackages` directly:
+
+```nix
+{ pkgs, serpantinum, ... }:
+
+{
+  environment.systemPackages = [
+    serpantinum.packages.${pkgs.stdenv.hostPlatform.system}.default
+  ];
+}
+```
+
+<Warning>
+  When installing this way, you are responsible for enabling all system prerequisites (PipeWire, NetworkManager, Bluetooth, i2c, RTKit, Iosevka Nerd Font) manually. The NixOS module (`programs.serpantinum.enable = true`) handles all of this for you automatically.
+</Warning>
+
+## Required Autostart Entries
+
+On NixOS you must add clipboard listeners and the EasyEffects service to your compositor's autostart configuration manually. Without these entries, the clipboard manager and audio equalizer will not function.
+
+<Tabs>
+  <Tab title="Hyprland">
+    ```lua
+    hl.on("hyprland.start", function()
+      hl.exec_cmd("wl-paste --type text --watch cliphist store")
+      hl.exec_cmd("wl-paste --type image --watch cliphist store")
+      hl.exec_cmd("systemctl --user enable --now easyeffects")
+    end)
+    ```
+  </Tab>
+  <Tab title="Niri / Sway">
+    Add these as `exec` or `exec-once` directives in your compositor config:
+
+    ```bash
+    wl-paste --type text --watch cliphist store
+    wl-paste --type image --watch cliphist store
+    systemctl --user enable --now easyeffects
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  Sample compositor configuration files for Hyprland, Niri, and Sway — including full autostart blocks and recommended keybindings — are available in the [Compositors Overview](/compositors/overview).
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Compositor Setup" icon="monitor" href="/compositors/overview">
+    Sample configs and autostart entries for Hyprland, Niri, and Sway.
+  </Card>
+  <Card title="Configuration Overview" icon="gear" href="/configuration/overview">
+    Explore every settings section: bar, theme, notifications, idle, and display.
+  </Card>
+</CardGroup>

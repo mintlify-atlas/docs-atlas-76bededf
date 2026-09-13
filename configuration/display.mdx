@@ -1,0 +1,109 @@
+---
+title: Display & Monitor Configuration in Serpantinum
+sidebarTitle: Display
+description: Configure per-monitor scale, blue-light filter, color temperature, and enable/disable outputs through Serpantinum's display section.
+---
+
+The `"display"` section of `settings.json` holds per-monitor overrides keyed by output name — the connector identifier that your compositor assigns, such as `"eDP-1"` for a built-in laptop screen or `"DP-2"` for an external DisplayPort monitor. Serpantinum reads these settings at startup and applies them through the compositor and the `wl-gammarelay-rs` backend for color temperature control.
+
+## Per-monitor parameters
+
+Each key under `display.monitors` is an output name, and its value is an object with the following fields:
+
+<ParamField path="display.monitors.<output>.enabled" type="boolean" default="false">
+  Whether the blue-light filter is active on this output. When `true`, Serpantinum applies a color temperature shift via `wl-gammarelay-rs`. This field controls the filter, not whether the physical display is powered on.
+</ParamField>
+
+<ParamField path="display.monitors.<output>.scale" type="number" default="1">
+  Display scale factor for this output. Serpantinum calculates valid scale values based on the monitor's native resolution and applies them through the active compositor (Hyprland, Niri, or Sway).
+
+  Common values: `1.0`, `1.25`, `1.5`, `2.0`. The guide constrains this to integer-aligned scales to avoid fractional-pixel rendering artefacts.
+</ParamField>
+
+<ParamField path="display.monitors.<output>.auto" type="boolean">
+  When `true`, the blue-light filter temperature is managed automatically using a sunrise/sunset schedule derived from your detected location. When `false`, the manual `temperature` value is used instead.
+</ParamField>
+
+<ParamField path="display.monitors.<output>.temperature" type="integer" default="50">
+  Manual color temperature override for this output, expressed as a slider value from `0` (warmest, most amber) to `100` (coolest, no shift). The guide translates this 0–100 range into the Kelvin values that `wl-gammarelay-rs` accepts.
+
+  Only active when `auto` is `false`.
+</ParamField>
+
+## Detecting monitor names
+
+To find the correct output names for your connected displays, run:
+
+```bash
+serpantinum monitors_detect
+```
+
+This queries the active compositor — using `hyprctl monitors all -j`, `niri msg -j outputs`, or `swaymsg -t get_outputs` depending on which compositor is running — and prints a list of detected output names alongside their current resolution and refresh rate.
+
+<Note>
+  Output names vary by compositor and hardware. Common patterns are `eDP-1` (built-in panel), `HDMI-A-1`, `DP-1`, `DP-2`, and `HDMI-1`. Always verify the exact name with `serpantinum monitors_detect` before editing the config.
+</Note>
+
+## Full example
+
+```json
+"display": {
+  "monitors": {
+    "eDP-1": {
+      "enabled": true,
+      "scale": 1.5,
+      "auto": false,
+      "temperature": 40
+    },
+    "DP-2": {
+      "enabled": true,
+      "scale": 1.0,
+      "auto": true
+    }
+  }
+}
+```
+
+In this example, the built-in screen `eDP-1` runs at 1.5× scale with a warm manual temperature, while the external `DP-2` runs at native scale with automatic sunrise/sunset scheduling.
+
+<Tabs>
+  <Tab title="Laptop only">
+    ```json
+    "display": {
+      "monitors": {
+        "eDP-1": {
+          "enabled": true,
+          "scale": 1.25,
+          "auto": false,
+          "temperature": 50
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Dual-monitor setup">
+    ```json
+    "display": {
+      "monitors": {
+        "eDP-1": {
+          "enabled": true,
+          "scale": 1.5,
+          "auto": true
+        },
+        "HDMI-A-1": {
+          "enabled": false,
+          "scale": 1.0
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  The blue-light filter can also be toggled interactively with the `serpantinum blue_light_filter` command, which is useful for binding to a key in your compositor config.
+</Tip>
+
+<Info>
+  The display settings panel in the guide auto-detects all connected monitors, shows their current resolution and refresh rate, and presents only the scale values that produce integer-aligned logical pixels for that resolution.
+</Info>

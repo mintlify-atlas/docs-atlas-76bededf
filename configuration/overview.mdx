@@ -1,0 +1,179 @@
+---
+title: Serpantinum Configuration Reference Overview
+sidebarTitle: Overview
+description: A complete guide to the single settings.json file that controls every aspect of Serpantinum — bar, theme, idle, notifications, and display.
+---
+
+Serpantinum stores all its configuration in a single JSON file at `~/.config/serpantinum/settings.json`. Every option you set through the in-app guide popup is immediately written back to this file, so you can edit it directly in a text editor or manage it through NixOS Home Manager — both approaches produce identical results.
+
+## Configuration file location
+
+The file is read on startup and hot-reloaded whenever it changes on disk. If the file does not exist, Serpantinum creates it automatically with the defaults shown below.
+
+```
+~/.config/serpantinum/settings.json
+```
+
+## Default settings.json
+
+The following is the complete default configuration shipped with Serpantinum. Any key you omit falls back to this value at runtime.
+
+```json
+{
+  "general": {
+    "language": "en",
+    "avatarPath": "",
+    "muteSfx": false,
+    "weatherInterval": 15,
+    "weatherUnit": "metric"
+  },
+  "syspanel": {
+    "clipExpandProgress": 0,
+    "clipExpanded": false,
+    "clipState": 1
+  },
+  "bar": {
+    "position": "top",
+    "width": 100,
+    "opacity": 100,
+    "style": "fill",
+    "time": {
+      "format": "HH:mm:ss"
+    },
+    "autohide": false,
+    "autohideTimeout": 1000,
+    "modules": {
+      "left": [
+        "left",
+        "workspaces",
+        "media"
+      ],
+      "center": [
+        [
+          "timedate",
+          "info",
+          "weather"
+        ]
+      ],
+      "right": [
+        "tray",
+        [
+          "kb",
+          "wifi",
+          "bt",
+          "vol",
+          "bat"
+        ]
+      ]
+    }
+  },
+  "theme": {
+    "fontFamily": "Adwaita Mono",
+    "borderRadius": 10,
+    "activePreset": "Matugen",
+    "matugen": true
+  },
+  "idle": {
+    "enabled": true,
+    "actions": {
+      "dim": {
+        "id": "dim",
+        "timeout": 150,
+        "enabled": true,
+        "respectInhibitors": true,
+        "mprisInhibit": false,
+        "command": "",
+        "resumeCommand": "",
+        "isCustom": false
+      },
+      "dpms": {
+        "id": "dpms",
+        "timeout": 450,
+        "enabled": true,
+        "respectInhibitors": true,
+        "mprisInhibit": false,
+        "command": "",
+        "resumeCommand": "",
+        "isCustom": false
+      },
+      "lock": {
+        "id": "lock",
+        "timeout": 300,
+        "enabled": true,
+        "respectInhibitors": true,
+        "mprisInhibit": false,
+        "command": "",
+        "resumeCommand": "",
+        "isCustom": false
+      },
+      "suspend": {
+        "id": "suspend",
+        "timeout": 600,
+        "enabled": true,
+        "respectInhibitors": true,
+        "mprisInhibit": false,
+        "command": "",
+        "resumeCommand": "",
+        "isCustom": false
+      }
+    }
+  },
+  "notifications": {
+    "dnd": true,
+    "position": "top right",
+    "sound": true,
+    "soundFile": ""
+  },
+  "display": {
+    "monitors": {
+      "eDP-1": {
+        "enabled": false,
+        "scale": 1
+      }
+    }
+  }
+}
+```
+
+## How the in-app guide writes settings
+
+Opening the guide popup (accessible from the bar's action button) provides a live GUI for every setting. Changes take effect instantly — the guide calls `Config.setSetting()` internally, which writes the merged object back to `settings.json` without a restart. You can have the file open in your editor at the same time and watch it update in real time.
+
+<Note>
+  The guide and the JSON file are always in sync. Any manual edit you make to `settings.json` is picked up on the next file-system watch event, typically within a second.
+</Note>
+
+## Top-level sections
+
+| Section | Description | Reference |
+|---|---|---|
+| `general` | Language, avatar path, UI sound effects, weather refresh interval and units | *(general settings)* |
+| `bar` | Position, style, opacity, autohide, clock format, and the three module arrays | [Bar](/configuration/bar) |
+| `theme` | Font family, border radius, active color preset, and Matugen toggle | [Theme](/configuration/theme) |
+| `idle` | Master switch, four built-in idle actions (dim / DPMS / lock / suspend), and custom actions | [Idle](/configuration/idle) |
+| `notifications` | Do-Not-Disturb flag, popup corner position, and notification sound | [Notifications](/configuration/notifications) |
+| `display` | Per-monitor blue-light filter, color temperature, and scale factor | [Display](/configuration/display) |
+
+## NixOS / Home Manager
+
+When you manage Serpantinum through the Home Manager module, the `settings` attribute set maps **1 : 1** to the keys in `settings.json`. Every option described in the sub-pages below can be expressed as a Nix attribute — the module serialises it to JSON for you.
+
+```nix
+programs.serpantinum.settings = {
+  bar = {
+    position = "top";
+    style = "modular";
+    opacity = 95;
+  };
+  theme = {
+    fontFamily = "JetBrains Mono";
+    borderRadius = 10;
+    activePreset = "Nord";
+    matugen = false;
+  };
+};
+```
+
+<Info>
+  See the [Nix Installation](/nix-installation) page for the full Home Manager and NixOS module setup.
+</Info>

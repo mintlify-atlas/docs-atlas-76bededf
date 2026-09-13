@@ -1,0 +1,100 @@
+---
+title: "Media Player Controls & MPRIS Integration"
+sidebarTitle: "Media Player"
+description: "Control any MPRIS-compatible player from Serpantinum's music popup, seek bar, Cava visualizer, and volume panel — wired to your compositor's media keys."
+---
+
+Serpantinum integrates with the system MPRIS D-Bus interface to provide media controls that work with any compatible player — Spotify, mpv, VLC, Rhythmbox, and more. Controls surface in three places: the `media` bar module (track title at a glance), the `MusicPopup` overlay (full art, seek bar, and equalizer), and the `vis` bar module (live Cava audio visualizer). A separate volume popup controls PipeWire output levels independently of the media player.
+
+## Music Popup
+
+The music popup is a full-featured MPRIS control panel. Open it with:
+
+```bash
+serpantinum msg open music
+# or toggle (open if closed, close if open)
+serpantinum msg toggle music
+```
+
+The popup displays:
+
+- **Cover art** fetched from the MPRIS `mpris:artUrl` metadata field
+- **Track title** and **artist** with a marquee scroll when the title overflows
+- **Playback controls** — previous, play/pause, and next
+- **Seek bar** — drag to scrub; the position updates in real time
+- **Audio visualizer bars** driven by Cava (registers and unregisters a consumer automatically on open/close)
+- **Equalizer integration** — EasyEffects is started automatically in the background when the popup opens
+
+<Info>
+  Cover art is fetched via the `art_fetch.sh` helper script which resolves both local file paths and remote URLs provided by the MPRIS `mpris:artUrl` field.
+</Info>
+
+## Side Music Popout
+
+When the bar is in a **vertical** (left or right) position, the `SideMediaWidget` module in the side bar can expand into a `SideMusicPopout` that shows track info inline within the bar panel, without opening a separate floating popup.
+
+## Audio Visualizer
+
+The `vis` module in the bar and the visualizer inside the music popup both use **Cava** for real-time audio analysis. Bar levels are read from `Cava.barLevels` and processed with a logarithmic frequency mapping to emphasize bass and mid-range response. The visualizer registers a consumer with Cava on show and releases it on hide to avoid unnecessary processing when not visible.
+
+The `VisualizerFace` and `VisualizerFaceContinuous` [desktop widgets](/features/desktop-widgets) use the same Cava singleton, so they react to audio even when the popup is closed.
+
+## Volume Popup
+
+The volume popup provides independent control over PipeWire audio outputs, inputs, and per-application streams:
+
+```bash
+serpantinum msg open volume
+# or using the shortcut alias
+serpantinum volume
+```
+
+The popup has three tabs — **Outputs**, **Inputs**, and **Apps** — and can be navigated programmatically:
+
+```bash
+# Open directly to the inputs tab
+serpantinum msg open volume inputs
+```
+
+## Compositor Key Bindings
+
+Serpantinum does not register global media key bindings itself — those must be set in your compositor config. The recommended bindings call the `serpantinum` CLI:
+
+<Tabs>
+  <Tab title="Hyprland">
+    ```ini hyprland.conf
+    bind = , XF86AudioPlay,  exec, playerctl play-pause
+    bind = , XF86AudioNext,  exec, playerctl next
+    bind = , XF86AudioPrev,  exec, playerctl previous
+    bind = , XF86AudioRaiseVolume, exec, serpantinum volume up
+    bind = , XF86AudioLowerVolume, exec, serpantinum volume down
+    bind = , XF86AudioMute,  exec, serpantinum volume mute
+    ```
+  </Tab>
+  <Tab title="Niri">
+    ```kdl config.kdl
+    binds {
+      XF86AudioPlay { spawn "playerctl" "play-pause"; }
+      XF86AudioNext { spawn "playerctl" "next"; }
+      XF86AudioPrev { spawn "playerctl" "previous"; }
+      XF86AudioRaiseVolume { spawn "serpantinum" "volume" "up"; }
+      XF86AudioLowerVolume { spawn "serpantinum" "volume" "down"; }
+      XF86AudioMute { spawn "serpantinum" "volume" "mute"; }
+    }
+    ```
+  </Tab>
+  <Tab title="Sway">
+    ```ini sway config
+    bindsym XF86AudioPlay  exec playerctl play-pause
+    bindsym XF86AudioNext  exec playerctl next
+    bindsym XF86AudioPrev  exec playerctl previous
+    bindsym XF86AudioRaiseVolume exec serpantinum volume up
+    bindsym XF86AudioLowerVolume exec serpantinum volume down
+    bindsym XF86AudioMute  exec serpantinum volume mute
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  The `media` bar module displays the currently active MPRIS source automatically and cycles to the next available player if the current one is paused or closes. No additional configuration is required.
+</Note>
